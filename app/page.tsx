@@ -4,6 +4,7 @@ import TrustedCompanies from "@/components/TrustedCompanies";
 import About from "@/components/About";
 import Features from "@/components/Features";
 import InteractiveDemo from "@/components/InteractiveDemo";
+import DashboardPreview from "@/components/DashboardPreview";
 import Services from "@/components/Services";
 import HowItWorks from "@/components/HowItWorks";
 import Pricing from "@/components/Pricing";
@@ -11,8 +12,7 @@ import Testimonials from "@/components/Testimonials";
 import FAQ from "@/components/FAQ";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
-import DashboardPreview from "@/components/DashboardPreview";
-<InteractiveDemo />
+import FloatingChat from "@/components/FloatingChat";
 
 export default function Home() {
   return (
@@ -25,6 +25,7 @@ export default function Home() {
       <About />
       <Features />
       <InteractiveDemo />
+      <DashboardPreview />
       <Services />
       <HowItWorks />
       <Pricing />
@@ -32,6 +33,7 @@ export default function Home() {
       <FAQ />
       <Contact />
       <Footer />
+      <FloatingChat />
     </main>
   );
 }
