@@ -1,88 +1,142 @@
-const stats = [
-  ["24/7", "AI support"],
-  ["30%+", "time saved"],
-  ["3x", "faster follow-up"],
-];
-
 export default function Hero() {
   return (
-    <section className="mx-auto grid min-h-[86vh] max-w-7xl items-center gap-16 px-6 py-20 lg:grid-cols-2">
-      <div>
-        <div className="mb-6 inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-          AI Automation Platform for Global Businesses
-        </div>
+    <section className="relative overflow-hidden px-6 pt-36 pb-24">
+      <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
 
-        <h1 className="max-w-4xl text-5xl font-black leading-tight tracking-tight md:text-7xl">
-          Build smarter businesses with AI-powered automation.
-        </h1>
-
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-300">
-          JOHAI helps companies automate customer service, websites, workflows,
-          lead generation, CRM tasks, and business operations with intelligent AI systems.
-        </p>
-
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-          <a href="#contact" className="rounded-full bg-blue-600 px-8 py-4 text-center font-bold transition hover:bg-blue-500">
-            Start Free Strategy Call
-          </a>
-
-          <a href="#services" className="rounded-full border border-white/15 px-8 py-4 text-center font-bold transition hover:bg-white/10">
-            Explore Solutions
-          </a>
-        </div>
-
-        <div className="mt-12 grid max-w-2xl grid-cols-3 gap-4">
-          {stats.map(([number, label]) => (
-            <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-3xl font-black text-blue-400">{number}</p>
-              <p className="mt-1 text-sm text-gray-400">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative">
-        <div className="absolute -inset-6 rounded-[2rem] bg-blue-600/20 blur-3xl" />
-
-        <div className="relative rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
-          <div className="mb-6 flex gap-2">
-            <span className="h-3 w-3 rounded-full bg-red-400" />
-            <span className="h-3 w-3 rounded-full bg-yellow-400" />
-            <span className="h-3 w-3 rounded-full bg-green-400" />
+        {/* LEFT */}
+        <div>
+          <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-5 py-2 text-sm text-blue-300">
+            🚀 AI Automation Platform
           </div>
 
-          <div className="rounded-3xl bg-[#0B1220] p-6">
-            <p className="text-sm text-blue-300">JOHAI Assistant</p>
+          <h1 className="mt-8 text-6xl lg:text-7xl font-black leading-tight">
+            AI Employees
+            <br />
+            That Work
+            <span className="text-blue-500"> 24/7</span>
+          </h1>
 
-            <p className="mt-4 text-2xl font-bold leading-relaxed">
-              “I qualify leads, answer questions, book appointments, send follow-ups,
-              and automate repetitive tasks 24/7.”
+          <p className="mt-8 max-w-xl text-xl text-gray-400 leading-9">
+            Automate customer support, appointment booking, lead qualification,
+            CRM updates, emails and repetitive workflows using intelligent AI
+            assistants built specifically for your business.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-4">
+
+            <button className="rounded-xl bg-blue-600 hover:bg-blue-500 transition px-8 py-4 font-semibold">
+              Get Free Strategy Call
+            </button>
+
+            <button className="rounded-xl border border-white/20 hover:border-blue-500 hover:bg-white/5 transition px-8 py-4">
+              ▶ Watch Demo
+            </button>
+
+          </div>
+
+          <div className="mt-12 flex items-center gap-10">
+
+            <div>
+              <p className="text-4xl font-bold">500+</p>
+              <p className="text-gray-500">Automations Built</p>
+            </div>
+
+            <div>
+              <p className="text-4xl font-bold">24/7</p>
+              <p className="text-gray-500">AI Availability</p>
+            </div>
+
+            <div>
+              <p className="text-4xl font-bold">98%</p>
+              <p className="text-gray-500">Customer Satisfaction</p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* RIGHT */}
+
+        <div className="relative">
+
+          <div className="rounded-3xl border border-white/10 bg-[#111827] p-8 shadow-2xl">
+
+            <div className="flex gap-3 mb-8">
+              <div className="h-4 w-4 rounded-full bg-red-400" />
+              <div className="h-4 w-4 rounded-full bg-yellow-400" />
+              <div className="h-4 w-4 rounded-full bg-green-400" />
+            </div>
+
+            <h3 className="text-2xl font-bold mb-8">
+              JOHAI AI Assistant
+            </h3>
+
+            <div className="space-y-5 text-lg">
+
+              <div className="flex justify-between">
+                <span>Answering Customers</span>
+                <span className="text-green-400">✓</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Booking Appointments</span>
+                <span className="text-green-400">✓</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Sending Follow-ups</span>
+                <span className="text-green-400">✓</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Lead Qualification</span>
+                <span className="text-green-400">✓</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>CRM Automation</span>
+                <span className="text-green-400">✓</span>
+              </div>
+
+            </div>
+
+            <div className="mt-10 rounded-2xl bg-[#1b2538] p-6">
+
+              <div className="flex justify-between">
+                <span>Status</span>
+                <span className="text-green-400 font-bold">
+                  ● Online
+                </span>
+              </div>
+
+              <div className="mt-6 h-3 rounded-full bg-gray-700 overflow-hidden">
+                <div className="h-full w-[92%] rounded-full bg-blue-500" />
+              </div>
+
+              <div className="mt-4 flex justify-between text-gray-400">
+                <span>Automation Load</span>
+                <span>92%</span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="absolute -bottom-10 -left-8 rounded-2xl bg-blue-600 px-6 py-5 shadow-xl">
+            <p className="text-3xl font-bold">+37</p>
+            <p className="text-sm text-blue-100">
+              Meetings Booked Today
             </p>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-4">
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="text-3xl font-black">Lead</p>
-              <p className="text-gray-400">Qualification</p>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-5">
-              <p className="text-3xl font-black">CRM</p>
-              <p className="text-gray-400">Automation</p>
-            </div>
+          <div className="absolute -top-8 -right-8 rounded-2xl bg-emerald-500 px-6 py-5 shadow-xl">
+            <p className="text-3xl font-bold">24/7</p>
+            <p className="text-sm">
+              AI Running
+            </p>
           </div>
 
-          <div className="mt-5 rounded-2xl bg-white/10 p-5">
-            <div className="mb-3 flex justify-between text-sm text-gray-400">
-              <span>Automation readiness</span>
-              <span>82%</span>
-            </div>
-
-            <div className="h-3 rounded-full bg-white/10">
-              <div className="h-3 w-[82%] rounded-full bg-blue-500" />
-            </div>
-          </div>
         </div>
+
       </div>
     </section>
   );
