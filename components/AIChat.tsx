@@ -8,24 +8,33 @@ type Message = {
   content: string;
 };
 
+const quickPrompts = [
+  "I own a dental clinic.",
+  "I own a restaurant.",
+  "I own a beauty salon.",
+  "I run a real estate business.",
+];
+
 export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
       content:
-        "Hi, I’m JOHAI. What type of business do you own, and what tasks are wasting your time right now?",
+        "Hi, I’m JOHAI. Tell me what type of business you own, and I’ll show you what AI can automate.",
     },
   ]);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
+  async function sendMessage(customMessage?: string) {
+    const text = customMessage || input;
+
+    if (!text.trim() || loading) return;
 
     const userMessage: Message = {
       role: "user",
-      content: input,
+      content: text,
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -68,7 +77,7 @@ export default function AIChat() {
   }
 
   return (
-    <div className="flex h-[520px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0B1220] shadow-2xl">
+    <div className="flex h-[560px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0B1220] shadow-2xl">
       <div className="border-b border-white/10 bg-blue-600 p-5">
         <h3 className="text-xl font-bold text-white">JOHAI AI Assistant</h3>
         <p className="text-sm text-blue-100">
@@ -90,6 +99,20 @@ export default function AIChat() {
           </div>
         ))}
 
+        {messages.length === 1 && (
+          <div className="grid gap-2">
+            {quickPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => sendMessage(prompt)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-gray-200 transition hover:bg-white/10"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading && (
           <div className="max-w-[85%] rounded-2xl bg-white/10 p-4 text-gray-300">
             JOHAI is thinking...
@@ -104,12 +127,12 @@ export default function AIChat() {
           onKeyDown={(e) => {
             if (e.key === "Enter") sendMessage();
           }}
-          placeholder="Example: I own a dental clinic..."
+          placeholder="Type your message..."
           className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-white outline-none placeholder:text-gray-500"
         />
 
         <button
-          onClick={sendMessage}
+          onClick={() => sendMessage()}
           className="rounded-xl bg-blue-600 px-4 transition hover:bg-blue-500"
         >
           <Send size={18} />
