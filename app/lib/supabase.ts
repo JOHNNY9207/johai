@@ -13,7 +13,19 @@ export type Lead = {
   biggest_problem: string;
   ai_recommendations?: string;
   conversation?: unknown;
+  status?: LeadStatus;
+  notes?: string;
 };
+
+export const leadStatuses = [
+  "New",
+  "Contacted",
+  "Qualified",
+  "Booked",
+  "Closed",
+] as const;
+
+export type LeadStatus = (typeof leadStatuses)[number];
 
 function assertSupabaseEnv() {
   if (!supabaseUrl || !supabaseServiceKey) {
