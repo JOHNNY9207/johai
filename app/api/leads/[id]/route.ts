@@ -9,6 +9,7 @@ import { isDashboardAuthenticated } from "@/app/lib/dashboard-auth";
 type UpdateLeadBody = {
   status?: string;
   notes?: string;
+  is_test?: boolean;
 };
 
 type RouteContext = {
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     const updates: {
       status?: LeadStatus;
       notes?: string;
+      is_test?: boolean;
     } = {};
 
     if (typeof body.status === "string") {
@@ -47,6 +49,10 @@ export async function PATCH(req: Request, context: RouteContext) {
 
     if (typeof body.notes === "string") {
       updates.notes = body.notes.trim();
+    }
+
+    if (typeof body.is_test === "boolean") {
+      updates.is_test = body.is_test;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -79,6 +85,36 @@ export async function PATCH(req: Request, context: RouteContext) {
 
     return NextResponse.json(
       { error: "Lead could not be updated." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(_req: Request, context: RouteContext) {
+  if (!(await isDashboardAuthenticated())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await context.params;
+    const supabase = createSupabaseServerClient();
+    const { error } = await supabase.from("leads").delete().eq("id", id);
+
+    if (error) {
+      console.error("Lead delete failed:", error.message);
+
+      return NextResponse.json(
+        { error: "Lead could not be deleted." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Lead delete route error:", error);
+
+    return NextResponse.json(
+      { error: "Lead could not be deleted." },
       { status: 500 }
     );
   }

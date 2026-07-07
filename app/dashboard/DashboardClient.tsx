@@ -6,6 +6,9 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  FlaskConical,
+  ShieldAlert,
+  Trash2,
   Mail,
   MessageSquareText,
   Search,
@@ -68,6 +71,9 @@ export default function DashboardClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "All">("All");
   const [businessTypeFilter, setBusinessTypeFilter] = useState("All");
+  const [testLeadFilter, setTestLeadFilter] = useState<
+    "hide" | "show" | "only"
+  >("hide");
   const [notesDraft, setNotesDraft] = useState(leads[0]?.notes ?? "");
   const [saveMessage, setSaveMessage] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -106,10 +112,19 @@ export default function DashboardClient({
       const matchesBusinessType =
         businessTypeFilter === "All" ||
         lead.business_type === businessTypeFilter;
+      const matchesTestFilter =
+        testLeadFilter === "show" ||
+        (testLeadFilter === "hide" && !lead.is_test) ||
+        (testLeadFilter === "only" && lead.is_test);
 
-      return matchesSearch && matchesStatus && matchesBusinessType;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesBusinessType &&
+        matchesTestFilter
+      );
     });
-  }, [businessTypeFilter, leadList, search, statusFilter]);
+  }, [businessTypeFilter, leadList, search, statusFilter, testLeadFilter]);
 
   const statusCounts = useMemo(() => {
     return leadStatuses.reduce<Record<LeadStatus, number>>((counts, status) => {
@@ -122,6 +137,7 @@ export default function DashboardClient({
   }, [leadList]);
 
   const conversation = getConversation(selectedLead?.conversation);
+  const testLeadCount = leadList.filter((lead) => lead.is_test).length;
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -131,7 +147,7 @@ export default function DashboardClient({
 
   function updateLead(
     leadId: string,
-    updates: Partial<Pick<Lead, "status" | "notes">>
+    updates: Partial<Pick<Lead, "status" | "notes" | "is_test">>
   ) {
     setSaveMessage("");
 
@@ -175,6 +191,89 @@ export default function DashboardClient({
     });
   }
 
+  function deleteLead(lead: Lead) {
+    const confirmed = window.confirm(
+      `Delete ${lead.first_name || "this lead"} from the CRM? This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaveMessage("");
+
+    startTransition(async () => {
+      const previousLeads = leadList;
+
+      setLeadList((current) => current.filter((item) => item.id !== lead.id));
+
+      if (selectedLeadId === lead.id) {
+        const nextLead = previousLeads.find((item) => item.id !== lead.id);
+        setSelectedLeadId(nextLead?.id ?? "");
+        setNotesDraft(nextLead?.notes ?? "");
+      }
+
+      try {
+        const res = await fetch(`/api/leads/${lead.id}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          throw new Error("Lead delete failed");
+        }
+
+        setSaveMessage("Lead deleted");
+      } catch (error) {
+        console.error(error);
+        setLeadList(previousLeads);
+        setSelectedLeadId(lead.id);
+        setNotesDraft(lead.notes ?? "");
+        setSaveMessage("Could not delete lead");
+      }
+    });
+  }
+
+  function cleanupTestLeads() {
+    const confirmed = window.confirm(
+      `Delete ${testLeadCount} test lead${testLeadCount === 1 ? "" : "s"}? Real leads will not be deleted.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaveMessage("");
+
+    startTransition(async () => {
+      const previousLeads = leadList;
+      const nextLeads = previousLeads.filter((lead) => !lead.is_test);
+
+      setLeadList(nextLeads);
+
+      if (selectedLead?.is_test) {
+        setSelectedLeadId(nextLeads[0]?.id ?? "");
+        setNotesDraft(nextLeads[0]?.notes ?? "");
+      }
+
+      try {
+        const res = await fetch("/api/leads/cleanup-test", {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          throw new Error("Test cleanup failed");
+        }
+
+        const data = (await res.json()) as { deletedCount?: number };
+        setSaveMessage(`Deleted ${data.deletedCount ?? 0} test leads`);
+      } catch (error) {
+        console.error(error);
+        setLeadList(previousLeads);
+        setSaveMessage("Could not clean up test leads");
+      }
+    });
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f7fb] text-slate-950">
       <div className="border-b border-slate-200 bg-white">
@@ -206,7 +305,7 @@ export default function DashboardClient({
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px]">
+          <div className="grid gap-3 xl:grid-cols-[1fr_190px_220px_190px_auto]">
             <label className="relative block">
               <Search
                 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -246,6 +345,30 @@ export default function DashboardClient({
                 </option>
               ))}
             </select>
+
+            <select
+              value={testLeadFilter}
+              onChange={(event) =>
+                setTestLeadFilter(
+                  event.target.value as "hide" | "show" | "only"
+                )
+              }
+              className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            >
+              <option value="hide">Hide test leads</option>
+              <option value="show">Show test leads</option>
+              <option value="only">Only test leads</option>
+            </select>
+
+            <button
+              type="button"
+              disabled={testLeadCount === 0 || isPending}
+              onClick={cleanupTestLeads}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ShieldAlert size={16} />
+              Clean Tests
+            </button>
           </div>
         </div>
       </div>
@@ -256,7 +379,8 @@ export default function DashboardClient({
             <div>
               <h2 className="text-lg font-bold">Leads</h2>
               <p className="text-sm text-slate-500">
-                {filteredLeads.length} of {leadList.length} visible
+                {filteredLeads.length} of {leadList.length} visible ·{" "}
+                {testLeadCount} test
               </p>
             </div>
           </div>
@@ -288,6 +412,7 @@ export default function DashboardClient({
                     <th className="px-5 py-3">Email</th>
                     <th className="px-5 py-3">Business Type</th>
                     <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Test</th>
                     <th className="px-5 py-3">Created Date</th>
                     <th className="px-5 py-3" />
                   </tr>
@@ -334,11 +459,45 @@ export default function DashboardClient({
                             ))}
                           </select>
                         </td>
+                        <td
+                          className="px-5 py-4"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(lead.is_test)}
+                              onChange={(event) =>
+                                updateLead(lead.id, {
+                                  is_test: event.target.checked,
+                                })
+                              }
+                              className="h-4 w-4 accent-blue-600"
+                            />
+                            Test
+                          </label>
+                        </td>
                         <td className="px-5 py-4 text-slate-600">
                           {formatDate(lead.created_at)}
                         </td>
-                        <td className="px-5 py-4 text-right text-slate-400">
-                          <ChevronRight size={18} />
+                        <td
+                          className="px-5 py-4"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => deleteLead(lead)}
+                              className="rounded-lg border border-red-200 p-2 text-red-600 transition hover:bg-red-50"
+                              aria-label="Delete lead"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            <ChevronRight
+                              size={18}
+                              className="mt-2 text-slate-400"
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -374,6 +533,13 @@ export default function DashboardClient({
                     {normalizeStatus(selectedLead.status)}
                   </span>
                 </div>
+
+                {selectedLead.is_test && (
+                  <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    <FlaskConical size={17} />
+                    Marked as test lead
+                  </div>
+                )}
 
                 <div className="grid gap-3 text-sm text-slate-600">
                   <div className="flex items-center gap-3">

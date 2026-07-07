@@ -15,6 +15,7 @@ export type Lead = {
   conversation?: unknown;
   status?: LeadStatus;
   notes?: string;
+  is_test?: boolean;
 };
 
 export const leadStatuses = [
