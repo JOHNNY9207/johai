@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -441,7 +441,25 @@ export default function DashboardClient({
   const [notesDraft, setNotesDraft] = useState(leads[0]?.notes ?? "");
   const [saveMessage, setSaveMessage] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
+  const [commandOpen, setCommandOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen((current) => !current);
+      }
+
+      if (event.key === "Escape") {
+        setCommandOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const selectedLead =
     leadList.find((lead) => lead.id === selectedLeadId) ?? leadList[0];
@@ -719,6 +737,74 @@ export default function DashboardClient({
     ["Engagement", customerSuccess.lifecycle.healthScore.engagementScore],
     ["Overall Health", customerSuccess.lifecycle.healthScore.overallHealth],
   ] as const;
+  const businessHealthScore = Math.round(
+    [
+      brainScore.overallScore,
+      chiefOfStaffBriefing?.businessPulse.overallBusinessHealth ?? 0,
+      customerSuccess.lifecycle.healthScore.overallHealth,
+      onboardingComplete ? 100 : setupProgress,
+    ].filter((score) => score > 0).reduce((sum, score, _, scores) => sum + score / scores.length, 0)
+  );
+  const revenueForecast = Math.max(
+    1200,
+    statusCounts.Qualified * 1800 + statusCounts.Booked * 3200 + statusCounts.Closed * 5000
+  );
+  const missedOpportunities = leadList.filter(
+    (lead) => normalizeStatus(lead.status) === "New" || normalizeStatus(lead.status) === "Contacted"
+  ).length;
+  const todaysKpis = [
+    ["Business Health", `${businessHealthScore}%`, Gauge],
+    ["Revenue Forecast", `$${Math.round(revenueForecast / 1000)}k`, CircleDollarSign],
+    ["Missed Opportunities", missedOpportunities, ShieldAlert],
+    ["Bookings", bookedLeads.length, CalendarDays],
+    ["Conversations", leadList.filter((lead) => getConversation(lead.conversation).length > 0).length, MessageSquareText],
+    ["AI Confidence", `${Math.max(65, Math.min(100, brainScore.overallScore || successRate))}%`, Brain],
+  ] as const;
+  const conversationQueue = leadList
+    .filter((lead) => getConversation(lead.conversation).length > 0)
+    .slice(0, 5);
+  const recentCrmUpdates = [...leadList]
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, 5);
+  const followUpQueue = leadList
+    .filter((lead) => !lead.booked_meeting && normalizeStatus(lead.status) !== "Closed")
+    .slice(0, 5);
+  const weeklyTrends = leadStatuses.map((status) => ({
+    label: status,
+    value: statusCounts[status],
+    width: Math.max(8, (statusCounts[status] / maxStatusCount) * 100),
+  }));
+  const confidenceIndicators = [
+    ["Business Brain", brainScore.overallScore],
+    ["Knowledge", gettingStarted?.knowledgeProgress ?? brainScore.knowledgeCompleteness],
+    ["Automation", chiefOfStaffBriefing?.businessPulse.automationHealth ?? 0],
+    ["CRM", Math.min(100, leadList.length * 12)],
+  ] as const;
+  const notificationItems = [
+    ...criticalAlerts.slice(0, 3).map((alert) => ({
+      title: alert.title,
+      detail: alert.explanation,
+      tone: "risk",
+    })),
+    ...upcomingMeetings.slice(0, 2).map((lead) => ({
+      title: "Meeting coming up",
+      detail: `${lead.first_name || lead.business_name} - ${formatDateTime(lead.next_meeting_at)}`,
+      tone: "meeting",
+    })),
+    ...followUpQueue.slice(0, 2).map((lead) => ({
+      title: "Follow-up waiting",
+      detail: `${lead.first_name || lead.business_name || lead.email} has not booked yet.`,
+      tone: "follow-up",
+    })),
+  ].slice(0, 6);
+  const commandActions = [
+    { label: "Open CRM", href: "#crm", icon: UsersRound },
+    { label: "Open Knowledge", href: "/dashboard/knowledge", icon: Brain },
+    { label: "Open Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Continue Onboarding", href: "/dashboard/onboarding", icon: Sparkles },
+    { label: "Review Follow-ups", href: "#automations", icon: Clock3 },
+    { label: "View Analytics", href: "#analytics", icon: Gauge },
+  ];
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -1138,6 +1224,204 @@ export default function DashboardClient({
                         </p>
                       ))
                     )}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+                {todaysKpis.map(([label, value, Icon]) => (
+                  <Card key={label} className="rounded-3xl p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <Icon className="text-cyan-300" size={21} />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+                    </div>
+                    <p className="mt-5 text-3xl font-semibold text-white">{value}</p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      {label}
+                    </p>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Gauge className="text-cyan-300" />
+                      <div>
+                        <h2 className="text-xl font-semibold">Business Health</h2>
+                        <p className="text-sm text-slate-500">Live operating score</p>
+                      </div>
+                    </div>
+                    <p className="text-4xl font-semibold">{businessHealthScore}%</p>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-300 transition-all duration-700"
+                      style={{ width: `${businessHealthScore}%` }}
+                    />
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {confidenceIndicators.map(([label, score]) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-200">{label}</span>
+                          <span className="text-cyan-200">{Math.max(0, score)}%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full rounded-full bg-cyan-300" style={{ width: `${Math.max(5, Math.min(100, score))}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Bell className="text-amber-300" />
+                    <div>
+                      <h2 className="text-xl font-semibold">Notification Center</h2>
+                      <p className="text-sm text-slate-500">Signals requiring attention</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {notificationItems.length === 0 && (
+                      <EmptyState
+                        title="No active notifications"
+                        detail="JOHAI will surface urgent meetings, risks, and follow-ups here."
+                      />
+                    )}
+                    {notificationItems.map((item) => (
+                      <div key={`${item.title}-${item.detail}`} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <p className="font-semibold text-slate-100">{item.title}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">{item.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-3">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <MessageSquareText className="text-cyan-300" />
+                    <h2 className="text-xl font-semibold">Conversation Queue</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {conversationQueue.length === 0 && (
+                      <EmptyState title="No conversations queued" detail="New visitor conversations will appear here." />
+                    )}
+                    {conversationQueue.map((lead) => (
+                      <button
+                        key={`queue-${lead.id}`}
+                        type="button"
+                        onClick={() => selectLead(lead)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <p className="font-semibold">{lead.first_name || lead.business_name || "New visitor"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{getConversation(lead.conversation).slice(-1)[0]?.content ?? lead.email}</p>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Target className="text-emerald-300" />
+                    <h2 className="text-xl font-semibold">Lead Pipeline</h2>
+                  </div>
+                  <div className="space-y-4">
+                    {weeklyTrends.map((trend) => (
+                      <div key={trend.label}>
+                        <div className="mb-2 flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-200">{trend.label}</span>
+                          <span className="text-slate-500">{trend.value}</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                          <div className={`${statusBars[trend.label]} h-full rounded-full transition-all duration-700`} style={{ width: `${trend.width}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Clock3 className="text-amber-300" />
+                    <h2 className="text-xl font-semibold">Follow-up Queue</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {followUpQueue.length === 0 && (
+                      <EmptyState title="No follow-ups waiting" detail="Booked or closed leads are already handled." />
+                    )}
+                    {followUpQueue.map((lead) => (
+                      <button
+                        key={`follow-${lead.id}`}
+                        type="button"
+                        onClick={() => selectLead(lead)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <p className="font-semibold">{lead.first_name || lead.business_name || lead.email}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {lead.follow_up_status ?? "waiting"} - {lead.follow_up_count ?? 0} reminders
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <CalendarDays className="text-cyan-300" />
+                    <h2 className="text-xl font-semibold">Calendar</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {upcomingMeetings.slice(0, 5).length === 0 && (
+                      <EmptyState title="No meetings this week" detail="Qualified bookings will show up here." />
+                    )}
+                    {upcomingMeetings.slice(0, 5).map((lead) => (
+                      <button
+                        key={`calendar-${lead.id}`}
+                        type="button"
+                        onClick={() => selectLead(lead)}
+                        className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <div>
+                          <p className="font-semibold">{lead.first_name || lead.business_name}</p>
+                          <p className="mt-1 text-xs text-slate-500">{formatDateTime(lead.next_meeting_at)}</p>
+                        </div>
+                        <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
+                          {lead.meeting_status ?? "Scheduled"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <StickyNote className="text-violet-300" />
+                    <h2 className="text-xl font-semibold">Recent CRM Updates</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {recentCrmUpdates.map((lead) => (
+                      <button
+                        key={`crm-update-${lead.id}`}
+                        type="button"
+                        onClick={() => selectLead(lead)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold">{lead.first_name || lead.business_name || lead.email}</p>
+                          <span className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${statusStyles[normalizeStatus(lead.status)]}`}>
+                            {normalizeStatus(lead.status)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">{formatDate(lead.created_at)}</p>
+                      </button>
+                    ))}
                   </div>
                 </Card>
               </div>
@@ -3538,6 +3822,55 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
+      {commandOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 px-4 py-8 backdrop-blur-2xl">
+          <button
+            type="button"
+            aria-label="Close command palette"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setCommandOpen(false)}
+          />
+          <div className="relative mx-auto mt-16 max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-[#07111f]/95 shadow-2xl shadow-cyan-950/40">
+            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-200">
+                <Search size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-white">Command Palette</p>
+                <p className="text-xs text-slate-500">Jump anywhere in JOHAI with Ctrl+K.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCommandOpen(false)}
+                className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-white/20 hover:text-white"
+              >
+                Esc
+              </button>
+            </div>
+
+            <div className="grid gap-2 p-4">
+              {commandActions.map((action) => {
+                const ActionIcon = action.icon;
+
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    onClick={() => setCommandOpen(false)}
+                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-300/10"
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/50 text-cyan-200 transition group-hover:bg-cyan-300 group-hover:text-slate-950">
+                      <ActionIcon size={18} />
+                    </span>
+                    <span className="font-semibold text-slate-100">{action.label}</span>
+                    <ChevronRight className="ml-auto text-slate-600 transition group-hover:translate-x-1 group-hover:text-cyan-200" size={18} />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

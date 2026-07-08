@@ -82,7 +82,43 @@ type PlanSlug = keyof typeof planDetails;
 
 export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
   const plan = planDetails[slug];
+  const displayPrice = billingCycle === "yearly" ? plan.price * 10 : plan.price;
+
+  async function startCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutMessage("");
+
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: slug,
+          billingCycle,
+        }),
+      });
+
+      const data = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !data.url) {
+        setCheckoutMessage(data.error ?? "Checkout is not configured yet.");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error(error);
+      setCheckoutMessage("Checkout is not configured yet.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-orange-50 text-slate-950">
@@ -111,8 +147,10 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
         >
           <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{plan.name} Plan</p>
           <h1 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight md:text-8xl">
-            ${plan.price}
-            <span className="block text-2xl text-slate-500 md:text-3xl">per month</span>
+            ${displayPrice}
+            <span className="block text-2xl text-slate-500 md:text-3xl">
+              per {billingCycle === "yearly" ? "year" : "month"}
+            </span>
           </h1>
           <p className="mt-7 max-w-xl text-xl leading-9 text-slate-600">{plan.audience}</p>
           <p className="mt-4 max-w-xl text-lg leading-8 text-slate-500">{plan.promise}</p>
@@ -175,7 +213,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-200">Checkout preparation</p>
               <h2 className="mt-4 text-4xl font-semibold">Start {plan.name}</h2>
-              <p className="mt-3 text-slate-300">${plan.price}/month. Account creation and payment setup are prepared visually.</p>
+              <p className="mt-3 text-slate-300">${displayPrice}/{billingCycle === "yearly" ? "year" : "month"}. Account creation and payment setup are prepared visually.</p>
             </div>
             <button
               type="button"
@@ -206,23 +244,44 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">Selected plan</p>
-                  <h3 className="mt-2 text-3xl font-semibold">{plan.name} - ${plan.price}/month</h3>
+                  <h3 className="mt-2 text-3xl font-semibold">{plan.name} - ${displayPrice}/{billingCycle === "yearly" ? "year" : "month"}</h3>
                 </div>
                 <button type="button" onClick={() => setCheckoutOpen(false)} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold">
                   Close
                 </button>
+              </div>
+              <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                {(["monthly", "yearly"] as const).map((cycle) => (
+                  <button
+                    key={cycle}
+                    type="button"
+                    onClick={() => setBillingCycle(cycle)}
+                    className={`rounded-full px-4 py-2 text-sm font-bold ${
+                      billingCycle === cycle ? "bg-slate-950 text-white" : "text-slate-600"
+                    }`}
+                  >
+                    {cycle === "monthly" ? "Monthly" : "Yearly"}
+                  </button>
+                ))}
               </div>
               <div className="mt-6 grid gap-3">
                 <CheckoutStep icon={<UserRound size={18} />} title="Create your JOHAI account" detail="Account creation is prepared as the first step." />
                 <CheckoutStep icon={<CreditCard size={18} />} title="Prepare payment" detail="Payment setup will connect to the checkout provider next." />
                 <CheckoutStep icon={<CalendarCheck size={18} />} title="Start onboarding" detail="After checkout, the business workspace setup begins." />
               </div>
-              <Link
-                href={`/start/company?plan=${slug}`}
-                className="mt-6 block w-full rounded-full bg-slate-950 px-6 py-4 text-center text-sm font-bold text-white"
+              {checkoutMessage && (
+                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                  {checkoutMessage}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={startCheckout}
+                disabled={checkoutLoading}
+                className="mt-6 block w-full rounded-full bg-slate-950 px-6 py-4 text-center text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Continue
-              </Link>
+                {checkoutLoading ? "Preparing checkout..." : "Continue"}
+              </button>
             </motion.div>
           </motion.div>
         )}
