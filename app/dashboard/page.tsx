@@ -22,6 +22,8 @@ import { createBusinessBrainService } from "@/app/lib/business-brain";
 import { createAuditEngine } from "@/app/lib/audit-engine";
 import { createMorningBriefService } from "@/app/lib/morning-brief";
 import { createExecutiveInsightEngine } from "@/app/lib/chief-of-staff";
+import { createBillingService } from "@/app/lib/billing";
+import { createCustomerLifecycleService } from "@/app/lib/customer-lifecycle";
 import DashboardClient from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -180,6 +182,23 @@ export default async function Dashboard() {
     knowledgeItems: knowledgeItemList,
     knowledgeFiles: knowledgeFileList,
     orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
+  });
+  const subscription = createBillingService().buildSubscription({
+    business: businessList[0] ?? null,
+    leads: leadList,
+    knowledgeFiles: knowledgeFileList,
+    orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
+  });
+  const customerSuccess = createCustomerLifecycleService().build({
+    business: businessList[0] ?? null,
+    businesses: businessList,
+    subscription,
+    leads: leadList,
+    knowledgeFiles: knowledgeFileList,
+    orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
+    auditHistory,
+    businessBrainScore: businessBrainSnapshot.score,
+    onboardingStatus,
   });
   const companyProfile = asRecord(settingsRecord?.company_profile);
   const servicesConfig = asRecord(settingsRecord?.services_config);
@@ -417,6 +436,8 @@ export default async function Dashboard() {
       auditHistory={auditHistory}
       morningBrief={morningBrief}
       chiefOfStaffBriefing={chiefOfStaffBriefing}
+      subscription={subscription}
+      customerSuccess={customerSuccess}
       gettingStarted={gettingStarted}
       loadError={Boolean(error)}
     />

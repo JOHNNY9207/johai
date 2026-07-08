@@ -1,0 +1,13 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#FFF1F2"/>
+  <circle cx="940" cy="170" r="280" fill="#F9A8D4" opacity=".32"/>
+  <circle cx="220" cy="710" r="280" fill="#FDE68A" opacity=".45"/>
+  <rect x="135" y="130" width="930" height="620" rx="64" fill="#FFFFFF" opacity=".64"/>
+  <rect x="245" y="500" width="710" height="92" rx="35" fill="#BE185D" opacity=".22"/>
+  <circle cx="390" cy="350" r="76" fill="#F5C99B"/>
+  <path d="M270 640c24-120 220-120 246 0H270Z" fill="#BE185D"/>
+  <circle cx="730" cy="360" r="72" fill="#F8D1AA"/>
+  <path d="M620 640c22-116 210-116 232 0H620Z" fill="#475569"/>
+  <path d="M510 310c90 20 126 100 122 170" stroke="#A16207" stroke-width="22" stroke-linecap="round"/>
+  <text x="600" y="815" text-anchor="middle" font-family="Arial" font-size="34" fill="#9F1239" opacity=".72">salon-team.jpg placeholder</text>
+</svg>

@@ -1,0 +1,14 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#F8FAFC"/>
+  <circle cx="940" cy="170" r="290" fill="#93C5FD" opacity=".32"/>
+  <circle cx="190" cy="740" r="320" fill="#FCD34D" opacity=".3"/>
+  <rect x="130" y="120" width="940" height="640" rx="64" fill="#FFFFFF" opacity=".68"/>
+  <rect x="250" y="265" width="700" height="300" rx="38" fill="#DBEAFE"/>
+  <path d="M385 545V395l160-115 160 115v150H385Z" fill="#334155" opacity=".75"/>
+  <path d="M455 545V430h180v115H455Z" fill="#FFFFFF" opacity=".72"/>
+  <circle cx="310" cy="590" r="62" fill="#F5C99B"/>
+  <path d="M215 725c20-100 175-100 198 0H215Z" fill="#1E3A8A"/>
+  <circle cx="890" cy="590" r="62" fill="#F8D1AA"/>
+  <path d="M795 725c20-100 175-100 198 0H795Z" fill="#0F766E"/>
+  <text x="600" y="815" text-anchor="middle" font-family="Arial" font-size="34" fill="#1E3A8A" opacity=".72">real-estate-team.jpg placeholder</text>
+</svg>

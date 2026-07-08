@@ -1,0 +1,23 @@
+<svg width="1400" height="1000" viewBox="0 0 1400 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1000" fill="#EAF7F8"/>
+  <rect width="1400" height="1000" fill="url(#g)"/>
+  <circle cx="1040" cy="180" r="300" fill="#BAE6FD" opacity=".55"/>
+  <circle cx="230" cy="810" r="360" fill="#FED7AA" opacity=".55"/>
+  <rect x="155" y="150" width="1090" height="700" rx="70" fill="#FFFFFF" opacity=".62"/>
+  <rect x="250" y="560" width="900" height="120" rx="38" fill="#B6D5DA"/>
+  <rect x="450" y="345" width="500" height="260" rx="34" fill="#0F172A"/>
+  <rect x="485" y="380" width="430" height="170" rx="24" fill="#DFFBFF"/>
+  <circle cx="455" cy="515" r="92" fill="#F8CFA9"/>
+  <path d="M340 735c18-126 210-126 230 0H340Z" fill="#2F5F73"/>
+  <circle cx="1030" cy="520" r="78" fill="#F5C99B"/>
+  <path d="M920 735c24-110 200-110 224 0H920Z" fill="#374151"/>
+  <rect x="650" y="700" width="420" height="24" rx="12" fill="#64748B"/>
+  <text x="700" y="835" text-anchor="middle" font-family="Arial" font-size="36" fill="#334155" opacity=".75">founder-workspace.jpg placeholder</text>
+  <defs>
+    <linearGradient id="g" x1="0" x2="1400" y1="0" y2="1000">
+      <stop stop-color="#FFFBEB"/>
+      <stop offset=".5" stop-color="#ECFEFF"/>
+      <stop offset="1" stop-color="#FFF7ED"/>
+    </linearGradient>
+  </defs>
+</svg>

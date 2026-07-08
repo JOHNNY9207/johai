@@ -1,0 +1,14 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#FFF7ED"/>
+  <circle cx="950" cy="160" r="260" fill="#FDBA74" opacity=".35"/>
+  <circle cx="180" cy="720" r="280" fill="#67E8F9" opacity=".25"/>
+  <rect x="120" y="130" width="960" height="620" rx="58" fill="#fff" opacity=".62"/>
+  <rect x="200" y="560" width="800" height="90" rx="32" fill="#92400E" opacity=".55"/>
+  <circle cx="360" cy="360" r="72" fill="#FBCFA8"/>
+  <path d="M250 620c20-118 200-118 220 0H250Z" fill="#155E75"/>
+  <circle cx="620" cy="330" r="70" fill="#F8CFA9"/>
+  <path d="M515 620c20-118 200-118 220 0H515Z" fill="#7C2D12"/>
+  <circle cx="850" cy="375" r="68" fill="#F5C99B"/>
+  <path d="M755 620c18-110 190-110 210 0H755Z" fill="#334155"/>
+  <text x="600" y="810" text-anchor="middle" font-family="Arial" font-size="34" fill="#78350F" opacity=".7">restaurant-team.jpg placeholder</text>
+</svg>

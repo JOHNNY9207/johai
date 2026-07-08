@@ -51,6 +51,8 @@ import type {
   ExecutiveCardType,
   ExecutivePriority,
 } from "@/app/lib/chief-of-staff";
+import type { SubscriptionModel } from "@/app/lib/billing";
+import type { CustomerSuccessDashboard } from "@/app/lib/customer-lifecycle";
 import type { MorningBrief, MorningBriefPriority } from "@/app/lib/morning-brief";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import type { LucideIcon } from "lucide-react";
@@ -69,6 +71,8 @@ type DashboardClientProps = {
   auditHistory?: AuditReport[];
   morningBrief?: MorningBrief;
   chiefOfStaffBriefing?: ChiefOfStaffBriefing;
+  subscription?: SubscriptionModel;
+  customerSuccess?: CustomerSuccessDashboard;
   gettingStarted?: GettingStartedExperience;
   loadError?: boolean;
 };
@@ -288,6 +292,8 @@ const sidebarItems: Array<{
   { icon: Brain, label: "AI Brain", meta: "Knowledge", href: "#ai-brain" },
   { icon: Zap, label: "Automations", meta: "Orchestrated", href: "#automations" },
   { icon: Gauge, label: "Analytics", meta: "Pulse", href: "#analytics" },
+  { icon: UserRound, label: "Customer Success", meta: "Lifecycle", href: "#customer-success" },
+  { icon: CircleDollarSign, label: "Billing", meta: "Plan", href: "#billing" },
   { icon: Settings, label: "Settings", meta: "Control", href: "#settings-workspace" },
 ];
 
@@ -333,6 +339,80 @@ const emptyChiefOfStaffBriefing: ChiefOfStaffBriefing = {
   notificationPlan: [],
 };
 
+const emptySubscription: SubscriptionModel = {
+  currentPlan: {
+    key: "starter",
+    name: "Starter",
+    description: "Default commercial readiness plan.",
+    monthlyPrice: 99,
+    yearlyPrice: 990,
+    trialDays: 14,
+    limits: {
+      seats: 1,
+      aiUsage: 1000,
+      storageMb: 500,
+      knowledgeItems: 50,
+      conversations: 500,
+      automations: 100,
+    },
+    features: ["CRM", "Command Center", "Knowledge Center"],
+  },
+  interval: "monthly",
+  status: "trialing",
+  trialDaysRemaining: 14,
+  renewalDate: new Date().toISOString(),
+  featuresEnabled: {},
+  usageThisMonth: {
+    seats: 0,
+    aiUsage: 0,
+    storageMb: 0,
+    knowledgeItems: 0,
+    conversations: 0,
+    automations: 0,
+  },
+  remainingQuota: {
+    seats: 1,
+    aiUsage: 1000,
+    storageMb: 500,
+    knowledgeItems: 50,
+    conversations: 500,
+    automations: 100,
+  },
+};
+
+const emptyCustomerSuccess: CustomerSuccessDashboard = {
+  activeTrials: 0,
+  trialsEndingSoon: 0,
+  conversionRate: 0,
+  customersByPlan: {
+    starter: 0,
+    professional: 0,
+    enterprise: 0,
+    enterprise_plus: 0,
+  },
+  mrrPlaceholder: "Pending billing provider",
+  arrPlaceholder: "Pending billing provider",
+  churnPlaceholder: "Pending billing provider",
+  lifecycle: {
+    businessName: "Default business",
+    lifecycleStatus: "Lead",
+    currentPlan: "Starter",
+    trialDaysRemaining: 0,
+    timeline: [],
+    healthScore: {
+      adoptionScore: 0,
+      featureUsage: 0,
+      knowledgeCompletion: 0,
+      automationCompletion: 0,
+      businessBrainCompletion: 0,
+      engagementScore: 0,
+      overallHealth: 0,
+    },
+    risks: [],
+    recommendations: [],
+  },
+};
+
 export default function DashboardClient({
   leads,
   businesses,
@@ -347,6 +427,8 @@ export default function DashboardClient({
   auditHistory = [],
   morningBrief = emptyMorningBrief,
   chiefOfStaffBriefing = emptyChiefOfStaffBriefing,
+  subscription = emptySubscription,
+  customerSuccess = emptyCustomerSuccess,
   gettingStarted,
   loadError,
 }: DashboardClientProps) {
@@ -588,6 +670,29 @@ export default function DashboardClient({
       priority: item.priority,
     })),
   ].slice(0, 6);
+  const setupProgress = gettingStarted?.progress ?? (onboardingComplete ? 100 : 45);
+  const nextBestAction = !onboardingComplete
+    ? {
+        title: "Finish onboarding",
+        detail: "Complete the company profile, AI behavior, services, and communication setup.",
+        href: "/dashboard/onboarding",
+      }
+    : actionCenterItems[0]
+      ? {
+          title: actionCenterItems[0].title,
+          detail: actionCenterItems[0].reason,
+          href: "#command-center",
+        }
+      : {
+          title: "Review today's CRM signals",
+          detail: "Open the newest leads, check notes, and confirm follow-up status.",
+          href: "#crm",
+        };
+  const guidedBriefStats = [
+    ["Leads", leadList.length],
+    ["Booked", bookedLeads.length],
+    ["Actions", orchestrationsToday.length],
+  ];
   const aiProductivity = [
     ["Hours saved", Math.max(1, orchestrationsToday.length * 2 + leadList.filter((lead) => lead.owner_email_sent || lead.prospect_email_sent).length)],
     ["Actions completed", successfulOrchestrations],
@@ -596,6 +701,24 @@ export default function DashboardClient({
     ["Appointments booked", bookedLeads.length],
     ["Revenue influenced", statusCounts.Qualified + statusCounts.Booked],
   ];
+  const billingUsageRows = [
+    ["Seats", subscription.usageThisMonth.seats, subscription.currentPlan.limits.seats, subscription.remainingQuota.seats],
+    ["AI usage", subscription.usageThisMonth.aiUsage, subscription.currentPlan.limits.aiUsage, subscription.remainingQuota.aiUsage],
+    ["Storage", subscription.usageThisMonth.storageMb, subscription.currentPlan.limits.storageMb, subscription.remainingQuota.storageMb],
+    ["Knowledge", subscription.usageThisMonth.knowledgeItems, subscription.currentPlan.limits.knowledgeItems, subscription.remainingQuota.knowledgeItems],
+    ["Conversations", subscription.usageThisMonth.conversations, subscription.currentPlan.limits.conversations, subscription.remainingQuota.conversations],
+    ["Automations", subscription.usageThisMonth.automations, subscription.currentPlan.limits.automations, subscription.remainingQuota.automations],
+  ] as const;
+  const enabledFeatures = Object.entries(subscription.featuresEnabled).filter(([, enabled]) => enabled);
+  const customerHealthRows = [
+    ["Adoption", customerSuccess.lifecycle.healthScore.adoptionScore],
+    ["Feature usage", customerSuccess.lifecycle.healthScore.featureUsage],
+    ["Knowledge", customerSuccess.lifecycle.healthScore.knowledgeCompletion],
+    ["Automation", customerSuccess.lifecycle.healthScore.automationCompletion],
+    ["Business Brain", customerSuccess.lifecycle.healthScore.businessBrainCompletion],
+    ["Engagement", customerSuccess.lifecycle.healthScore.engagementScore],
+    ["Overall Health", customerSuccess.lifecycle.healthScore.overallHealth],
+  ] as const;
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -769,7 +892,11 @@ export default function DashboardClient({
                           ? `${orchestrationsToday.length} today`
                           : item.label === "Analytics"
                             ? `${successRate}% success`
-                            : item.meta}
+                            : item.label === "Customer Success"
+                              ? customerSuccess.lifecycle.lifecycleStatus
+                            : item.label === "Billing"
+                              ? subscription.currentPlan.name
+                              : item.meta}
                 </span>
               </a>
             ))}
@@ -889,7 +1016,7 @@ export default function DashboardClient({
             )}
 
             <section id="command-center" className="mb-6 scroll-mt-36 space-y-6">
-              <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl lg:p-8">
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-cyan-950/20 backdrop-blur-xl lg:p-8">
                 <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                   <div className="max-w-4xl">
                     <div className="flex items-center gap-4">
@@ -901,21 +1028,21 @@ export default function DashboardClient({
                           JOHAI Command Center
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">
-                          Your AI employee headquarters
+                          Welcome back to your AI employee.
                         </h1>
                       </div>
                     </div>
                     <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">
-                      JOHAI is monitoring customers, knowledge, automations,
-                      meetings, and executive priorities from one focused command
-                      workspace.
+                      Start with the few signals that matter now. CRM, Knowledge,
+                      Calendly, Email, Business Brain, Audit Engine, and Orchestrator
+                      remain available below when you need deeper control.
                     </p>
                   </div>
 
-                  <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[420px]">
+                  <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[460px]">
                     <div className="rounded-3xl border border-emerald-300/20 bg-emerald-300/10 p-5">
                       <p className="text-xs uppercase tracking-wide text-emerald-200">
-                        Live AI Status
+                        AI Employee Status
                       </p>
                       <p className="mt-3 text-2xl font-semibold text-white">
                         {chiefOfStaffBriefing?.status ?? "Monitoring"}
@@ -923,14 +1050,96 @@ export default function DashboardClient({
                     </div>
                     <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5">
                       <p className="text-xs uppercase tracking-wide text-cyan-200">
-                        Today&apos;s Focus
+                        Setup Progress
                       </p>
-                      <p className="mt-3 text-sm leading-6 text-slate-100">
-                        {morningBrief?.aiFocusToday ?? "Monitor activity and surface important business signals."}
-                      </p>
+                      <div className="mt-3 flex items-end justify-between gap-3">
+                        <p className="text-2xl font-semibold text-white">{setupProgress}%</p>
+                        <p className="text-xs text-cyan-100">
+                          {onboardingComplete ? "Ready" : "Needs setup"}
+                        </p>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full rounded-full bg-cyan-200" style={{ width: `${setupProgress}%` }} />
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_0.9fr]">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="text-cyan-300" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                        Next Best Action
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">{nextBestAction.title}</h2>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-400">
+                    {nextBestAction.detail}
+                  </p>
+                  <Link
+                    href={nextBestAction.href}
+                    className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+                  >
+                    Open
+                    <ChevronRight size={16} />
+                  </Link>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="text-emerald-300" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
+                        Today&apos;s Brief
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        {morningBrief?.greeting ?? "Welcome back."}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    {guidedBriefStats.map(([label, value]) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+                        <p className="text-xs text-slate-500">{label}</p>
+                        <p className="mt-1 text-xl font-semibold text-slate-100">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-400">
+                    {morningBrief?.aiFocusToday ?? "JOHAI is monitoring the business and waiting for the next signal."}
+                  </p>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert className="text-rose-300" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-rose-300">
+                        Critical Alerts
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        {criticalAlerts.length || "Clear"}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    {criticalAlerts.length === 0 ? (
+                      <p className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                        No critical alerts right now.
+                      </p>
+                    ) : (
+                      criticalAlerts.slice(0, 2).map((alert) => (
+                        <p key={`guided-alert-${alert.id}`} className="rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4 text-sm leading-6 text-rose-100">
+                          {alert.title}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                </Card>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -2688,6 +2897,313 @@ export default function DashboardClient({
                       ))}
                     </div>
                   )}
+                </Card>
+
+                <Card id="customer-success" className="scroll-mt-36 rounded-3xl p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <UserRound className="text-cyan-300" />
+                      <div>
+                        <h2 className="text-lg font-semibold">Customer Success</h2>
+                        <p className="text-sm text-slate-400">
+                          Complete lifecycle management for every business account.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                      {customerSuccess.lifecycle.lifecycleStatus}
+                    </span>
+                  </div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+                    {[
+                      ["Active Trials", customerSuccess.activeTrials],
+                      ["Ending Soon", customerSuccess.trialsEndingSoon],
+                      ["Conversion", `${customerSuccess.conversionRate}%`],
+                      ["MRR", customerSuccess.mrrPlaceholder],
+                      ["ARR", customerSuccess.arrPlaceholder],
+                      ["Churn", customerSuccess.churnPlaceholder],
+                      ["Health", `${customerSuccess.lifecycle.healthScore.overallHealth}%`],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                      >
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        <p className="mt-2 text-xl font-semibold text-white">
+                          {value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Lifecycle
+                          </p>
+                          <h3 className="mt-2 text-2xl font-semibold">
+                            {customerSuccess.lifecycle.businessName}
+                          </h3>
+                          <p className="mt-2 text-sm text-slate-400">
+                            {customerSuccess.lifecycle.currentPlan} plan -{" "}
+                            {customerSuccess.lifecycle.trialDaysRemaining} trial days remaining
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        {Object.entries(customerSuccess.customersByPlan).map(([plan, count]) => (
+                          <div
+                            key={plan}
+                            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                          >
+                            <p className="text-xs uppercase tracking-wide text-slate-500">
+                              {plan.replace("_", "+")}
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold">{count}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Customer Health Score
+                      </p>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {customerHealthRows.map(([label, score]) => (
+                          <div
+                            key={label}
+                            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                              <span className="font-semibold">{label}</span>
+                              <span className="text-cyan-200">{score}%</span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className="h-full rounded-full bg-cyan-300"
+                                style={{ width: `${score}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-6 xl:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <h3 className="font-semibold">Customer Timeline</h3>
+                      <div className="mt-4 space-y-4">
+                        {customerSuccess.lifecycle.timeline.map((event) => (
+                          <div key={event.label} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <span
+                                className={`mt-1 h-3 w-3 rounded-full ${
+                                  event.status === "completed"
+                                    ? "bg-emerald-300"
+                                    : "bg-white/30"
+                                }`}
+                              />
+                              <span className="mt-2 h-full w-px bg-white/10" />
+                            </div>
+                            <div className="pb-2">
+                              <p className="font-semibold text-slate-100">{event.label}</p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {event.detail}
+                              </p>
+                              {event.date && (
+                                <p className="mt-1 text-xs text-slate-600">
+                                  {formatDate(event.date)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <h3 className="font-semibold">Risk Detection</h3>
+                      <div className="mt-4 space-y-3">
+                        {customerSuccess.lifecycle.risks.length === 0 && (
+                          <EmptyState
+                            title="No lifecycle risks"
+                            detail="Customer health is stable based on current lifecycle signals."
+                          />
+                        )}
+                        {customerSuccess.lifecycle.risks.map((risk) => (
+                          <div
+                            key={risk.title}
+                            className="rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="font-semibold text-rose-100">{risk.title}</p>
+                              <span className="rounded-full border border-rose-300/25 px-2 py-1 text-[11px] font-semibold text-rose-100">
+                                {risk.severity}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs leading-5 text-slate-400">
+                              {risk.detail}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <h3 className="font-semibold">Recommendations</h3>
+                      <div className="mt-4 space-y-3">
+                        {customerSuccess.lifecycle.recommendations.map((recommendation) => (
+                          <div
+                            key={recommendation.title}
+                            className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="font-semibold text-cyan-100">
+                                {recommendation.title}
+                              </p>
+                              <span className="rounded-full border border-cyan-300/25 px-2 py-1 text-[11px] font-semibold text-cyan-100">
+                                {recommendation.priority}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs leading-5 text-slate-400">
+                              {recommendation.reason}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card id="billing" className="scroll-mt-36 rounded-3xl p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <CircleDollarSign className="text-cyan-300" />
+                      <div>
+                        <h2 className="text-lg font-semibold">Billing</h2>
+                        <p className="text-sm text-slate-400">
+                          Commercial architecture prepared for Stripe without enabling payments yet.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+                    >
+                      Upgrade plan
+                    </button>
+                  </div>
+
+                  <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Current plan
+                      </p>
+                      <div className="mt-3 flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-3xl font-semibold">
+                            {subscription.currentPlan.name}
+                          </h3>
+                          <p className="mt-2 text-sm leading-6 text-slate-400">
+                            {subscription.currentPlan.description}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-100">
+                          {subscription.status}
+                        </span>
+                      </div>
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-xs text-slate-500">Monthly</p>
+                          <p className="mt-1 text-xl font-semibold">
+                            {subscription.currentPlan.monthlyPrice === null
+                              ? "Custom"
+                              : `$${subscription.currentPlan.monthlyPrice}`}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-xs text-slate-500">Yearly</p>
+                          <p className="mt-1 text-xl font-semibold">
+                            {subscription.currentPlan.yearlyPrice === null
+                              ? "Custom"
+                              : `$${subscription.currentPlan.yearlyPrice}`}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-xs text-slate-500">Trial</p>
+                          <p className="mt-1 text-xl font-semibold">
+                            {subscription.trialDaysRemaining} days
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-4 text-xs text-slate-500">
+                        Renewal date placeholder: {formatDate(subscription.renewalDate)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Usage this month
+                      </p>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {billingUsageRows.map(([label, used, limit, remaining]) => {
+                          const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+                          return (
+                            <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                              <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="font-semibold">{label}</span>
+                                <span className="text-slate-400">
+                                  {used} / {limit}
+                                </span>
+                              </div>
+                              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                                <div
+                                  className="h-full rounded-full bg-cyan-300"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <p className="mt-2 text-xs text-slate-500">
+                                {remaining} remaining
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-4 xl:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-5">
+                      <h3 className="font-semibold">Features enabled</h3>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {enabledFeatures.map(([feature]) => (
+                          <span
+                            key={feature}
+                            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <EmptyState
+                      title="Invoices placeholder"
+                      detail="Invoices will appear here after Stripe or another billing provider is connected."
+                    />
+                    <EmptyState
+                      title="Payment history placeholder"
+                      detail="Payment method and transaction history are prepared as UI placeholders only."
+                    />
+                  </div>
                 </Card>
 
                 <Card id="settings-workspace" className="scroll-mt-36 rounded-3xl p-5">

@@ -1,441 +1,651 @@
 "use client";
 
-import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { AnimatePresence, animate, motion } from "framer-motion";
 import {
   ArrowRight,
+  Brain,
   BarChart3,
-  Bot,
-  Building2,
   CalendarCheck,
   Check,
-  ChevronDown,
-  Gem,
-  MessageSquareText,
-  Play,
-  ShieldCheck,
+  Mail,
+  MessageCircle,
   Sparkles,
-  Star,
-  Workflow,
+  Target,
+  TrendingUp,
+  UsersRound,
 } from "lucide-react";
-import AIChat from "@/components/AIChat";
+import { useEffect, useState, type ReactNode } from "react";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import FloatingChat from "@/components/FloatingChat";
 
-const trustedCompanies = ["Apex Dental", "Noura Beauty", "Urban Table", "Prime Realty", "Atlas Care"];
+type Room = "AI Employee" | "Industries" | "Customers" | "Pricing";
 
-const features = [
-  {
-    icon: Bot,
-    title: "AI lead qualification",
-    text: "JOHAI asks the right questions, scores intent, and saves complete lead records automatically.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Calendly-aware booking",
-    text: "Qualified prospects are guided toward real availability and every booked call is reflected in the CRM.",
-  },
-  {
-    icon: Workflow,
-    title: "Follow-up automation",
-    text: "Friendly reminders continue until the prospect books, without flooding your team or your inbox.",
-  },
-  {
-    icon: BarChart3,
-    title: "Revenue visibility",
-    text: "Track pipeline health, meeting conversion, email delivery, and AI recommendations in one command center.",
-  },
+const rooms: Room[] = ["AI Employee", "Industries", "Customers", "Pricing"];
+
+const aiFlow = [
+  { label: "Visitor asks", detail: "Can AI help my business book more customers?", icon: MessageCircle },
+  { label: "AI listening", detail: "JOHAI understands intent and urgency.", icon: Sparkles },
+  { label: "Knowledge retrieved", detail: "Services, FAQ, and policies are matched.", icon: Brain },
+  { label: "CRM record appears", detail: "Lead context is saved automatically.", icon: Target },
+  { label: "Lead score rises", detail: "Opportunity is marked as high intent.", icon: TrendingUp },
+  { label: "Calendar suggested", detail: "Booking appears only after qualification.", icon: CalendarCheck },
+  { label: "Email sent", detail: "Confirmation and follow-up are prepared.", icon: Mail },
+  { label: "Owner notified", detail: "The team sees what matters next.", icon: UsersRound },
 ];
 
 const industries = [
-  "Dental clinics",
-  "Med spas",
-  "Restaurants",
-  "Real estate",
-  "Home services",
-  "Consultants",
-];
-
-const pricing = [
   {
-    name: "Launch",
-    price: "$299",
-    text: "For a growing local business that wants AI lead capture live quickly.",
-    features: ["AI chatbot", "CRM dashboard", "Calendly booking", "Email notifications"],
+    name: "Restaurant",
+    color: "from-amber-200 via-orange-100 to-white",
+    photo: "/images/photo-restaurant.jpg",
+    replacement: "/public/images/photo-restaurant.jpg",
+    workflow: "Answers menu questions, captures private event leads, books reservations.",
   },
   {
-    name: "Scale",
-    price: "$699",
-    text: "For teams that need follow-ups, analytics, and a refined customer journey.",
-    features: ["Everything in Launch", "Automated reminders", "Pipeline analytics", "Priority setup"],
-    featured: true,
+    name: "Dental",
+    color: "from-cyan-200 via-sky-100 to-white",
+    photo: "/images/photo-dental.jpg",
+    replacement: "/public/images/photo-dental.jpg",
+    workflow: "Qualifies treatment requests and guides patients toward consultations.",
   },
   {
-    name: "Platform",
-    price: "Custom",
-    text: "For multi-location brands and agencies preparing a full AI operations layer.",
-    features: ["Multi-business structure", "Custom workflows", "Advanced reporting", "Dedicated support"],
-  },
-];
-
-const testimonials = [
-  {
-    quote:
-      "JOHAI turned our website chat into booked audits instead of random questions. The CRM makes follow-up obvious.",
-    name: "Maya R.",
-    role: "Clinic owner",
+    name: "Beauty",
+    color: "from-rose-200 via-pink-100 to-white",
+    photo: "/images/photo-beauty.jpg",
+    replacement: "/public/images/photo-beauty.jpg",
+    workflow: "Books consultations, answers service questions, and follows up gently.",
   },
   {
-    quote:
-      "The experience feels premium for prospects and practical for our team. We know exactly who needs attention.",
-    name: "Daniel K.",
-    role: "Agency founder",
+    name: "Real Estate",
+    color: "from-blue-200 via-slate-100 to-white",
+    photo: "/images/photo-real-estate.jpg",
+    replacement: "/public/images/photo-real-estate.jpg",
+    workflow: "Qualifies buyers, sellers, valuation requests, and meeting intent.",
   },
   {
-    quote:
-      "It captures context, sends the confirmation, and keeps the booking path clean. That saved us hours every week.",
-    name: "Sofia L.",
-    role: "Operations lead",
+    name: "Legal",
+    color: "from-stone-200 via-zinc-100 to-white",
+    photo: "/images/photo-legal.jpg",
+    replacement: "/public/images/photo-legal.jpg",
+    workflow: "Routes consultation requests and prepares intake context for the team.",
+  },
+  {
+    name: "Home Services",
+    color: "from-emerald-200 via-teal-100 to-white",
+    photo: "/images/photo-home-services.jpg",
+    replacement: "/public/images/photo-home-services.jpg",
+    workflow: "Captures urgent repair leads and keeps dispatch context organized.",
   },
 ];
 
-const faqs = [
+const customerStories = [
   {
-    question: "Does JOHAI replace my website?",
-    answer:
-      "No. JOHAI sits on top of your current acquisition flow and turns visitor conversations into qualified CRM leads.",
+    name: "Sarah",
+    business: "Beauty salon owner",
+    photo: "/images/photo-customer-sarah.jpg",
+    replacement: "/public/images/photo-customer-sarah.jpg",
+    stats: [
+      ["284", "conversations answered"],
+      ["41", "consultations booked"],
+      ["18", "missed leads recovered"],
+      ["21h", "saved this month"],
+    ],
+    timeline: ["Website question answered", "Consultation booked", "Follow-up sent", "CRM updated"],
   },
   {
-    question: "Can it use my Calendly?",
-    answer:
-      "Yes. The dashboard connects to Calendly so prospects can book through your real scheduling link.",
-  },
-  {
-    question: "Is the CRM included?",
-    answer:
-      "Yes. Leads, notes, status, conversations, reminders, meetings, and email activity are managed in one place.",
+    name: "Marcus",
+    business: "Restaurant operator",
+    photo: "/images/photo-customer-marcus.jpg",
+    replacement: "/public/images/photo-customer-marcus.jpg",
+    stats: [
+      ["196", "guest questions answered"],
+      ["33", "events captured"],
+      ["27", "reservations influenced"],
+      ["16h", "saved this month"],
+    ],
+    timeline: ["Menu question answered", "Private event lead scored", "Owner notified", "Follow-up scheduled"],
   },
 ];
 
-const metrics = [
-  ["42%", "higher booking intent"],
-  ["3 min", "average audit capture"],
-  ["24/7", "AI qualification"],
+const plans = [
+  {
+    name: "Starter",
+    slug: "starter",
+    price: 299,
+    text: "For one business ready to automate the first conversation.",
+    features: ["AI Employee", "Lead capture", "Calendly booking", "CRM updates"],
+  },
+  {
+    name: "Professional",
+    slug: "professional",
+    price: 699,
+    text: "For teams that want follow-up, audit, and knowledge workflows.",
+    features: ["Everything in Starter", "Follow-ups", "Knowledge Center", "AI Audit"],
+  },
+  {
+    name: "Enterprise",
+    slug: "enterprise",
+    price: 1499,
+    text: "For multi-location operators and agencies building an AI layer.",
+    features: ["Multi-business", "Advanced automation", "Priority setup", "Custom workflows"],
+  },
 ];
 
-function SectionHeading({
-  eyebrow,
-  title,
-  text,
+const liveDashboardActions = [
+  ["09:12", "Conversation arrived", "Restaurant owner asked about private events"],
+  ["09:13", "Knowledge searched", "Menu, event policy, pricing notes matched"],
+  ["09:14", "Lead qualified", "High intent, booking ready"],
+  ["09:16", "Meeting booked", "Strategy call added to calendar"],
+  ["09:17", "CRM updated", "Timeline, notes, and next action saved"],
+  ["09:18", "Owner notified", "Priority summary sent"],
+];
+
+function Counter({ value }: { value: string }) {
+  const numeric = Number.parseInt(value.replace(/\D/g, ""), 10);
+  const suffix = value.replace(/[0-9]/g, "");
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!numeric) return;
+    const controls = animate(0, numeric, {
+      duration: 1.2,
+      ease: "easeOut",
+      onUpdate: (latest) => setCurrent(Math.round(latest)),
+    });
+    return () => controls.stop();
+  }, [numeric]);
+
+  return (
+    <span>
+      {current}
+      {suffix}
+    </span>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+  active,
 }: {
-  eyebrow: string;
-  title: string;
-  text: string;
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
 }) {
   return (
-    <div className="mx-auto max-w-3xl text-center">
-      <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">
-        {eyebrow}
-      </p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
-        {title}
-      </h2>
-      <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">{text}</p>
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className={`rounded-full px-5 py-3 text-sm font-bold transition ${
+        active
+          ? "bg-slate-950 text-white shadow-2xl shadow-slate-900/20"
+          : "border border-white/70 bg-white/60 text-slate-800 shadow-lg shadow-slate-900/5 backdrop-blur-xl hover:bg-white"
+      }`}
+    >
+      {children}
+    </motion.button>
+  );
+}
+
+function PhotoStage({
+  src,
+  alt,
+  replacement,
+  priority,
+}: {
+  src: string;
+  alt: string;
+  replacement: string;
+  priority?: boolean;
+}) {
+  return (
+    <div
+      data-replacement={replacement}
+      className="relative overflow-hidden rounded-[3rem] border border-white/70 bg-white/60 p-3 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl"
+    >
+      {/* Replace this premium photo placeholder by dropping your JPG at: {replacement} */}
+      <Image
+        src={src}
+        alt={alt}
+        width={1600}
+        height={1100}
+        priority={priority}
+        className="h-[58vh] min-h-[420px] w-full rounded-[2.45rem] object-cover"
+      />
+      <div className="absolute inset-3 rounded-[2.45rem] bg-gradient-to-t from-slate-950/35 via-transparent to-white/15" />
     </div>
   );
 }
 
-export default function Home() {
+function AiEmployeeRoom() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setStep((current) => (current + 1) % aiFlow.length);
+    }, 1700);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const active = aiFlow[step];
+  const ActiveIcon = active.icon;
+
   return (
-    <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <div className="fixed inset-0 -z-10 bg-[linear-gradient(135deg,#06111f_0%,#071827_40%,#130b2a_100%)]" />
-      <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(168,85,247,0.14),transparent_28%),linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]" />
-
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#050812]/75 backdrop-blur-xl">
-        <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <a href="#hero" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
-              <Sparkles size={20} />
-            </span>
-            <span className="text-lg font-semibold tracking-tight">JOHAI</span>
-          </a>
-          <div className="hidden items-center gap-7 text-sm text-slate-300 lg:flex">
-            <a href="#demo" className="transition hover:text-white">AI Demo</a>
-            <a href="#features" className="transition hover:text-white">Features</a>
-            <a href="#industries" className="transition hover:text-white">Industries</a>
-            <a href="#pricing" className="transition hover:text-white">Pricing</a>
-            <a href="#faq" className="transition hover:text-white">FAQ</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/dashboard"
-              className="hidden rounded-2xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 sm:inline-flex"
-            >
-              Dashboard
-            </a>
-            <CalendlyBookingButton className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-100" />
-          </div>
-        </nav>
-      </header>
-
-      <section id="hero" className="relative px-5 pb-24 pt-36 lg:px-8 lg:pb-32 lg:pt-44">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-100">
-              <Gem size={16} />
-              Premium AI CRM for service businesses
-            </div>
-            <h1 className="mt-7 max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
-              JOHAI turns visitors into qualified booked calls.
-            </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-300">
-              A premium AI assistant, CRM, Calendly booking flow, email notifications,
-              and follow-up engine designed for modern service companies.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <CalendlyBookingButton className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-6 py-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-200" />
-              <a
-                href="#demo"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10"
-              >
-                <Play size={17} />
-                Watch AI demo
-              </a>
-            </div>
-            <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-              {metrics.map(([value, label]) => (
-                <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur">
-                  <p className="text-2xl font-semibold text-white">{value}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-400">{label}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15, duration: 0.7 }}
-            className="relative"
-          >
-            <div className="rounded-[32px] border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
-              <AIChat />
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="border-y border-white/10 bg-white/[0.03] px-5 py-8 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-400">
-            Trusted by growing teams
+    <RoomShell tone="from-cyan-100 via-white to-orange-50">
+      <div className="grid min-h-[calc(100vh-9rem)] items-center gap-10 lg:grid-cols-[0.82fr_1.18fr]">
+        <motion.div
+          initial={{ opacity: 0, y: 34, filter: "blur(12px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.7 }}
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">AI Employee</p>
+          <h1 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
+            Watch JOHAI run the work.
+          </h1>
+          <p className="mt-7 max-w-xl text-xl leading-9 text-slate-600">
+            Leads, answers, bookings, emails, follow-ups, and CRM updates move while your team stays focused.
           </p>
-          <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {trustedCompanies.map((company) => (
-              <div key={company} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm font-semibold text-slate-300">
-                {company}
-              </div>
-            ))}
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link href="/executive-dashboard" className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white shadow-2xl shadow-slate-900/20">
+              <ArrowRight size={17} />
+              Open Executive Dashboard
+            </Link>
+            <CalendlyBookingButton
+              label="Book Strategy Call"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/70 px-6 py-4 text-sm font-bold text-slate-900 shadow-lg shadow-slate-900/5 backdrop-blur-xl transition hover:bg-white"
+            />
           </div>
-        </div>
-      </section>
+        </motion.div>
 
-      <section id="demo" className="px-5 py-24 lg:px-8">
-        <SectionHeading
-          eyebrow="AI demo"
-          title="A polished assistant that captures real buying intent."
-          text="JOHAI qualifies leads conversationally, extracts the CRM fields your team needs, and guides serious prospects toward a booked audit."
-        />
-        <div className="mx-auto mt-12 grid max-w-7xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <MessageSquareText className="text-cyan-300" />
-              <h3 className="text-xl font-semibold">Live qualification flow</h3>
-            </div>
-            <div className="mt-6 space-y-4">
-              {["Business type identified", "Pain point extracted", "Email captured", "Audit booking offered"].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-                  <Check size={17} className="text-emerald-300" />
-                  <span className="text-sm text-slate-200">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl">
-            <div className="grid gap-4 md:grid-cols-3">
-              {["New Lead", "AI Audit", "Booked Call"].map((step, index) => (
-                <div key={step} className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-                  <p className="text-sm text-slate-400">Step {index + 1}</p>
-                  <p className="mt-2 text-lg font-semibold">{step}</p>
-                  <div className="mt-5 h-2 rounded-full bg-white/10">
-                    <div className="h-2 rounded-full bg-cyan-300" style={{ width: `${45 + index * 22}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+        <ExecutiveDashboardMock active={active} ActiveIcon={ActiveIcon} step={step} />
+      </div>
+    </RoomShell>
+  );
+}
 
-      <section id="features" className="px-5 py-24 lg:px-8">
-        <SectionHeading
-          eyebrow="Features"
-          title="Everything needed to move from chat to revenue."
-          text="The frontend feels premium for prospects while your team gets the operational clarity of a modern SaaS CRM."
-        />
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
+function ExecutiveDashboardMock({
+  active,
+  ActiveIcon,
+  step,
+}: {
+  active: (typeof aiFlow)[number];
+  ActiveIcon: (typeof aiFlow)[number]["icon"];
+  step: number;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-[3rem] border border-white/70 bg-white/70 p-4 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_90%_10%,rgba(251,191,36,0.14),transparent_26%)]" />
+      <div className="relative rounded-[2.4rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-900/20">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">JOHAI Operating System</p>
+            <h2 className="mt-2 text-2xl font-semibold">Executive Dashboard</h2>
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+            Live
+          </span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          {[
+            ["Business Health", "92%", BarChart3],
+            ["Bookings", "14", CalendarCheck],
+            ["Conversations", "38", MessageCircle],
+            ["Revenue Forecast", "$18k", TrendingUp],
+          ].map(([label, value, Icon]) => (
             <motion.div
-              key={feature.title}
-              whileHover={{ y: -6 }}
-              className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl"
+              key={label as string}
+              whileHover={{ y: -4 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.06] p-4"
             >
-              <feature.icon className="text-cyan-300" size={26} />
-              <h3 className="mt-6 text-lg font-semibold">{feature.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-400">{feature.text}</p>
+              <Icon className="text-cyan-200" size={18} />
+              <p className="mt-3 text-2xl font-semibold">{value as string}</p>
+              <p className="mt-1 text-xs text-slate-400">{label as string}</p>
             </motion.div>
           ))}
         </div>
-      </section>
 
-      <section id="industries" className="px-5 py-24 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">
-              Industries
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">
-              Built for high-trust service businesses.
-            </h2>
-            <p className="mt-5 text-base leading-8 text-slate-300">
-              JOHAI works best where every qualified conversation can become a consultation,
-              audit, appointment, or local customer.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {industries.map((industry) => (
-              <div key={industry} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-5">
-                <Building2 className="text-cyan-300" size={20} />
-                <span className="font-semibold">{industry}</span>
+        <div className="mt-4 grid gap-3 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-950">
+                <ActiveIcon size={20} />
+              </span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{active.label}</p>
+                <p className="mt-1 text-sm text-slate-300">{active.detail}</p>
               </div>
+            </div>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className="h-full rounded-full bg-cyan-300"
+                animate={{ width: `${((step + 1) / aiFlow.length) * 100}%` }}
+                transition={{ duration: 0.35 }}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Live activity feed</p>
+            <div className="space-y-2">
+              {liveDashboardActions.slice(0, 5).map(([time, title, detail], index) => (
+                <motion.div
+                  key={title}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.06 }}
+                  className="flex gap-3 rounded-xl bg-slate-900/70 p-3"
+                >
+                  <span className="text-xs font-bold text-cyan-200">{time}</span>
+                  <div>
+                    <p className="text-sm font-semibold">{title}</p>
+                    <p className="text-xs text-slate-500">{detail}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {["Urgent: call event lead", "Recommendation: upload pricing", "Calendar: 3 calls today"].map((item) => (
+            <div key={item} className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 p-4 text-sm text-cyan-50">
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndustriesRoom() {
+  const [active, setActive] = useState(0);
+  const industry = industries[active];
+
+  return (
+    <RoomShell tone={industry.color}>
+      <div className="grid min-h-[calc(100vh-9rem)] items-center gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Industries</p>
+          <h2 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
+            One AI layer. Every business rhythm.
+          </h2>
+          <div className="mt-8 flex flex-wrap gap-2">
+            {industries.map((item, index) => (
+              <ActionButton key={item.name} active={index === active} onClick={() => setActive(index)}>
+                {item.name}
+              </ActionButton>
             ))}
           </div>
         </div>
-      </section>
 
-      <section id="pricing" className="px-5 py-24 lg:px-8">
-        <SectionHeading
-          eyebrow="Pricing"
-          title="Plans for launch, scale, and platform growth."
-          text="Start with a clean AI acquisition layer, then expand into automation and multi-business operations."
-        />
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 lg:grid-cols-3">
-          {pricing.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-[28px] border p-7 backdrop-blur-xl ${
-                plan.featured
-                  ? "border-cyan-300/40 bg-cyan-300/10 shadow-2xl shadow-cyan-950/30"
-                  : "border-white/10 bg-white/[0.05]"
-              }`}
-            >
-              <p className="text-lg font-semibold">{plan.name}</p>
-              <p className="mt-4 text-4xl font-semibold">{plan.price}</p>
-              <p className="mt-4 min-h-16 text-sm leading-6 text-slate-300">{plan.text}</p>
-              <div className="mt-6 space-y-3">
-                {plan.features.map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm text-slate-200">
-                    <Check size={16} className="text-emerald-300" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <motion.div
+          key={industry.name}
+          initial={{ opacity: 0, x: 30, filter: "blur(12px)" }}
+          animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.55 }}
+          className="relative"
+        >
+          <PhotoStage src={industry.photo} alt={`${industry.name} business using JOHAI`} replacement={industry.replacement} />
+          <div className="absolute bottom-8 left-8 right-8 rounded-[2rem] border border-white/70 bg-white/82 p-6 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">{industry.name}</p>
+            <p className="mt-3 text-3xl font-semibold leading-tight text-slate-950">{industry.workflow}</p>
+          </div>
+        </motion.div>
+      </div>
+    </RoomShell>
+  );
+}
 
-      <section className="px-5 py-24 lg:px-8">
-        <SectionHeading
-          eyebrow="Testimonials"
-          title="A better first impression for every serious prospect."
-          text="Teams use JOHAI to make their website feel responsive, intelligent, and commercially focused."
-        />
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 lg:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.name} className="rounded-[28px] border border-white/10 bg-white/[0.05] p-7">
-              <div className="flex gap-1 text-cyan-300">
-                {[0, 1, 2, 3, 4].map((star) => (
-                  <Star key={star} size={16} fill="currentColor" />
-                ))}
-              </div>
-              <p className="mt-6 text-base leading-8 text-slate-200">&quot;{testimonial.quote}&quot;</p>
-              <p className="mt-6 font-semibold">{testimonial.name}</p>
-              <p className="text-sm text-slate-400">{testimonial.role}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+function CustomersRoom() {
+  const [active, setActive] = useState(0);
+  const story = customerStories[active];
 
-      <section id="faq" className="px-5 py-24 lg:px-8">
-        <SectionHeading
-          eyebrow="FAQ"
-          title="Questions before your AI audit."
-          text="Simple answers for teams that want a premium lead capture system without disrupting current operations."
-        />
-        <div className="mx-auto mt-12 max-w-4xl space-y-4">
-          {faqs.map((faq) => (
-            <details key={faq.question} className="group rounded-2xl border border-white/10 bg-white/[0.05] p-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
-                {faq.question}
-                <ChevronDown className="shrink-0 transition group-open:rotate-180" size={18} />
-              </summary>
-              <p className="mt-4 text-sm leading-7 text-slate-300">{faq.answer}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      <section className="px-5 py-24 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-[32px] border border-cyan-300/20 bg-cyan-300/10 p-8 text-center backdrop-blur-xl md:p-14">
-          <ShieldCheck className="mx-auto text-cyan-200" size={34} />
-          <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">
-            Give every prospect a premium AI buying journey.
+  return (
+    <RoomShell tone="from-rose-50 via-white to-cyan-50">
+      <div className="grid min-h-[calc(100vh-9rem)] items-center gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Customers</p>
+          <h2 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
+            Customer stories, not testimonials.
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-300">
-            Book a free AI audit and see how JOHAI can qualify, capture, follow up,
-            and book meetings for your business.
-          </p>
-          <div className="mt-8 flex justify-center">
-            <CalendlyBookingButton className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-100" />
+          <div className="mt-8 flex gap-2">
+            {customerStories.map((item, index) => (
+              <ActionButton key={item.name} active={index === active} onClick={() => setActive(index)}>
+                {item.name}
+              </ActionButton>
+            ))}
           </div>
         </div>
-      </section>
 
-      <footer className="border-t border-white/10 px-5 py-10 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
-              <Sparkles size={20} />
-            </span>
-            <div>
-              <p className="font-semibold">JOHAI</p>
-              <p className="text-sm text-slate-400">Premium AI CRM platform</p>
+        <motion.div
+          key={story.name}
+          initial={{ opacity: 0, y: 26, filter: "blur(10px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.5 }}
+          className="relative"
+        >
+          <PhotoStage src={story.photo} alt={`${story.name} JOHAI customer story`} replacement={story.replacement} />
+          <div className="absolute bottom-8 left-8 right-8 rounded-[2rem] border border-white/70 bg-white/84 p-6 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">
+              {story.name} - {story.business}
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              {story.stats.map(([value, label]) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-white/80 p-3">
+                  <p className="text-2xl font-semibold text-slate-950">
+                    <Counter value={value} />
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {story.timeline.map((item) => (
+                <span key={item} className="rounded-full bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-800">
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-            <a href="#features" className="hover:text-white">Features</a>
-            <a href="#pricing" className="hover:text-white">Pricing</a>
-            <a href="/dashboard" className="hover:text-white">Dashboard</a>
-            <a href="#hero" className="inline-flex items-center gap-1 hover:text-white">
-              Back to top <ArrowRight size={14} />
-            </a>
+        </motion.div>
+      </div>
+    </RoomShell>
+  );
+}
+
+function PricingRoom() {
+  const [yearly, setYearly] = useState(false);
+  const [expanded, setExpanded] = useState("Professional");
+  const multiplier = yearly ? 10 : 1;
+  const roi = yearly ? "$18k+" : "$1.8k+";
+
+  return (
+    <RoomShell tone="from-slate-50 via-white to-cyan-50">
+      <div className="min-h-[calc(100vh-9rem)]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Pricing</p>
+            <h2 className="mt-6 max-w-4xl text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
+              Choose the AI layer your business needs.
+            </h2>
+          </div>
+          <div className="flex rounded-full border border-white/70 bg-white/70 p-1 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
+            <ActionButton active={!yearly} onClick={() => setYearly(false)}>Monthly</ActionButton>
+            <ActionButton active={yearly} onClick={() => setYearly(true)}>Yearly</ActionButton>
           </div>
         </div>
-      </footer>
+
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {plans.map((plan) => {
+            const active = expanded === plan.name;
+            return (
+              <motion.div
+                key={plan.name}
+                layout
+                onClick={() => setExpanded(plan.name)}
+                whileHover={{ y: -8 }}
+                className={`cursor-pointer rounded-[2rem] border p-6 text-left shadow-2xl backdrop-blur-2xl transition ${
+                  active
+                    ? "border-slate-950 bg-slate-950 text-white shadow-slate-900/25"
+                    : "border-white/70 bg-white/70 text-slate-950 shadow-slate-900/8"
+                }`}
+              >
+                <p className="text-xl font-semibold">{plan.name}</p>
+                <p className="mt-5 text-5xl font-semibold">${plan.price * multiplier}</p>
+                <p className={`mt-4 text-sm leading-6 ${active ? "text-slate-300" : "text-slate-600"}`}>{plan.text}</p>
+                <AnimatePresence>
+                  {active && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-6 space-y-3 overflow-hidden"
+                    >
+                      {plan.features.map((feature) => (
+                        <p key={feature} className="flex items-center gap-2 text-sm">
+                          <Check size={15} className="text-cyan-300" />
+                          {feature}
+                        </p>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <Link
+                    href={`/pricing/${plan.slug}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className={`rounded-full px-4 py-2 text-sm font-bold ${
+                      active ? "bg-white text-slate-950" : "bg-slate-950 text-white"
+                    }`}
+                  >
+                    View plan
+                  </Link>
+                  <Link
+                    href={`/pricing/${plan.slug}#checkout`}
+                    onClick={(event) => event.stopPropagation()}
+                    className={`rounded-full border px-4 py-2 text-sm font-bold ${
+                      active ? "border-white/20 text-white" : "border-slate-200 text-slate-800"
+                    }`}
+                  >
+                    Start
+                  </Link>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-2xl shadow-slate-900/8 backdrop-blur-2xl">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">Estimated ROI</p>
+              <p className="mt-2 text-3xl font-semibold">Projected monthly value: {roi}</p>
+            </div>
+            <CalendlyBookingButton
+              label="Book Strategy Call"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
+            />
+          </div>
+        </div>
+      </div>
+    </RoomShell>
+  );
+}
+
+function RoomShell({ children, tone }: { children: ReactNode; tone: string }) {
+  return (
+    <motion.section
+      key={tone}
+      initial={{ opacity: 0, y: 28, filter: "blur(12px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      exit={{ opacity: 0, y: -28, filter: "blur(12px)" }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className={`relative min-h-screen overflow-hidden bg-gradient-to-br ${tone} px-5 pb-10 pt-28 lg:px-8`}
+    >
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_18%,rgba(125,211,252,0.34),transparent_30%),radial-gradient(circle_at_82%_20%,rgba(253,186,116,0.28),transparent_28%)]" />
+      <div className="mx-auto max-w-7xl">{children}</div>
+    </motion.section>
+  );
+}
+
+export default function Home() {
+  const [room, setRoom] = useState<Room>("AI Employee");
+
+  return (
+    <main id="experience" className="min-h-screen overflow-hidden bg-white text-slate-950">
+      <header className="fixed inset-x-0 top-0 z-50">
+        <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <button
+            type="button"
+            onClick={() => setRoom("AI Employee")}
+            className="flex items-center gap-3 rounded-full border border-white/70 bg-white/70 px-3 py-2 shadow-lg shadow-slate-900/5 backdrop-blur-2xl"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-950 text-white">
+              <Sparkles size={18} />
+            </span>
+            <span className="text-sm font-semibold">JOHAI</span>
+          </button>
+          <div className="hidden rounded-full border border-white/70 bg-white/70 p-1 shadow-lg shadow-slate-900/5 backdrop-blur-2xl md:flex">
+            <Link
+              href="/product"
+              className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white"
+            >
+              Product
+            </Link>
+            {rooms.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setRoom(item)}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  room === item ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-white"
+                }`}
+              >
+                {item === "Industries" ? "Solutions" : item === "AI Employee" ? "Demo" : item}
+              </button>
+            ))}
+            <Link
+              href="/dashboard"
+              className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white"
+            >
+              Dashboard
+            </Link>
+          </div>
+          <CalendlyBookingButton
+            label="Book Call"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
+          />
+        </nav>
+      </header>
+
+      <AnimatePresence mode="wait">
+        {room === "AI Employee" && <AiEmployeeRoom key="ai" />}
+        {room === "Industries" && <IndustriesRoom key="industries" />}
+        {room === "Customers" && <CustomersRoom key="customers" />}
+        {room === "Pricing" && <PricingRoom key="pricing" />}
+      </AnimatePresence>
+
+      <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-full border border-white/70 bg-white/75 p-2 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl md:hidden">
+        {rooms.map((item) => (
+          <button
+            key={`mobile-${item}`}
+            type="button"
+            onClick={() => setRoom(item)}
+            className={`rounded-full px-3 py-2 text-xs font-bold ${
+              room === item ? "bg-slate-950 text-white" : "text-slate-700"
+            }`}
+          >
+            {item.split(" ")[0]}
+          </button>
+        ))}
+      </div>
 
       <FloatingChat />
     </main>

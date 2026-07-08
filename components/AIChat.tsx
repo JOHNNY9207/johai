@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Bot,
   Check,
@@ -299,7 +300,10 @@ export default function AIChat() {
 
       await saveLead(extractedLead, finalConversation, aiReply);
 
-      if (wantsToBook) {
+      const qualifiedForBooking =
+        isCompleteLead(extractedLead) && hasValidEmail(extractedLead);
+
+      if (wantsToBook && qualifiedForBooking) {
         setShowBookingButton(true);
         const availabilityMessage = await getAvailabilityMessage();
 
@@ -312,6 +316,15 @@ export default function AIChat() {
             },
           ]);
         }
+      } else if (wantsToBook) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "I can help with booking after I understand your business, main challenge, name, and email. That way the AI audit is actually useful when you arrive.",
+          },
+        ]);
       }
     } catch (error) {
       console.error(error);
@@ -350,12 +363,17 @@ export default function AIChat() {
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5">
-        {messages.map((message, index) => {
-          const isUser = message.role === "user";
+        <AnimatePresence initial={false}>
+          {messages.map((message, index) => {
+            const isUser = message.role === "user";
 
-          return (
-            <div
+            return (
+              <motion.div
               key={index}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22 }}
               className={`group flex gap-3 ${isUser ? "justify-end" : ""}`}
             >
               {!isUser && (
@@ -395,20 +413,24 @@ export default function AIChat() {
                   <UserRound size={16} />
                 </div>
               )}
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {messages.length === 1 && (
           <div className="grid gap-2 pt-2">
-            {quickPrompts.map((prompt) => (
-              <button
+            {quickPrompts.map((prompt, index) => (
+              <motion.button
                 key={prompt}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
                 onClick={() => sendMessage(prompt)}
                 className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-slate-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
               >
                 {prompt}
-              </button>
+              </motion.button>
             ))}
           </div>
         )}
