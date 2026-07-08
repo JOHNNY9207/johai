@@ -33,6 +33,7 @@ import {
   type Business,
   type Lead,
   type LeadStatus,
+  type OnboardingStatus,
 } from "@/app/lib/supabase";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import type { LucideIcon } from "lucide-react";
@@ -40,6 +41,7 @@ import type { LucideIcon } from "lucide-react";
 type DashboardClientProps = {
   leads: Lead[];
   businesses: Business[];
+  onboardingStatus?: OnboardingStatus;
   loadError?: boolean;
 };
 
@@ -142,6 +144,7 @@ const sidebarItems: Array<{
   { icon: LayoutDashboard, label: "Overview", meta: "Active", href: "#crm" },
   { icon: UsersRound, label: "CRM", meta: "Leads", href: "#crm" },
   { icon: KanbanSquare, label: "Pipeline", meta: "Booked", href: "#crm" },
+  { icon: Sparkles, label: "Onboarding", meta: "Setup", href: "/dashboard/onboarding" },
   { icon: Bot, label: "AI Insights", meta: "Live", href: "#crm" },
   { icon: Mail, label: "Email Activity", meta: "Health", href: "#crm" },
   { icon: Building2, label: "Businesses", meta: "Accounts", href: "#businesses" },
@@ -162,6 +165,7 @@ const metricCards: Array<{
 export default function DashboardClient({
   leads,
   businesses,
+  onboardingStatus = "not_started",
   loadError,
 }: DashboardClientProps) {
   const [leadList, setLeadList] = useState(leads);
@@ -260,6 +264,7 @@ export default function DashboardClient({
     .slice(0, 4);
   const emailErrors = leadList.filter((lead) => lead.email_error).length;
   const maxStatusCount = Math.max(...leadStatuses.map((status) => statusCounts[status]), 1);
+  const onboardingComplete = onboardingStatus === "completed";
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -496,6 +501,37 @@ export default function DashboardClient({
           </header>
 
           <div className="px-4 py-6 lg:px-8">
+            {!onboardingComplete && (
+              <section className="mb-6 rounded-3xl border border-cyan-300/25 bg-cyan-300/10 p-5 backdrop-blur-xl">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
+                      <Sparkles size={22} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                        Onboarding required
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Finish configuring the JOHAI AI workspace.
+                      </h2>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        Complete company profile, AI behavior, services,
+                        communication setup, and final activation.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard/onboarding"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100"
+                  >
+                    Continue onboarding
+                    <ChevronRight size={17} />
+                  </Link>
+                </div>
+              </section>
+            )}
+
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {metricCards.map((metric) => {
                 const value =

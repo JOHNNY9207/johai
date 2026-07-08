@@ -15,6 +15,37 @@ export type Business = {
   created_at?: string;
 };
 
+export const onboardingStatuses = [
+  "not_started",
+  "in_progress",
+  "completed",
+] as const;
+
+export type OnboardingStatus = (typeof onboardingStatuses)[number];
+
+export type BusinessSettings = {
+  id: string;
+  business_id: string;
+  booking_url?: string;
+  calendly_user_uri?: string;
+  calendly_account_name?: string;
+  calendly_account_email?: string;
+  email_provider?: string;
+  email_api_key?: string;
+  email_from?: string;
+  email_owner?: string;
+  ai_assistant_name?: string;
+  ai_system_prompt?: string;
+  onboarding_status?: OnboardingStatus;
+  company_profile?: Record<string, unknown>;
+  ai_assistant_config?: Record<string, unknown>;
+  services_config?: Record<string, unknown>;
+  communication_config?: Record<string, unknown>;
+  onboarding_completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type Lead = {
   id: string;
   business_id?: string;

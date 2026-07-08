@@ -8,14 +8,13 @@ import {
   createSupabaseServerClient,
   DEFAULT_BUSINESS_ID,
   type Business,
-  type Lead,
-  type OnboardingStatus,
+  type BusinessSettings,
 } from "@/app/lib/supabase";
-import DashboardClient from "./DashboardClient";
+import OnboardingClient from "./OnboardingClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function Dashboard() {
+export default async function DashboardOnboarding() {
   if (!isDashboardPasswordConfigured()) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#08111f] px-6 py-12 text-white">
@@ -38,32 +37,38 @@ export default async function Dashboard() {
 
   const supabase = createSupabaseServerClient();
 
-  const { data: leads, error } = await supabase
-    .from("leads")
-    .select("*")
-    .order("created_at", { ascending: false });
-  const { data: businesses } = await supabase
+  const { data: business } = await supabase
     .from("businesses")
     .select("*")
-    .order("created_at", { ascending: true });
-  const { data: settings } = await supabase
+    .eq("id", DEFAULT_BUSINESS_ID)
+    .single();
+
+  const { data: existingSettings } = await supabase
     .from("business_settings")
-    .select("onboarding_status")
+    .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .maybeSingle();
 
-  const leadList = (leads ?? []) as Lead[];
-  const businessList = (businesses ?? []) as Business[];
-  const onboardingStatus =
-    (settings?.onboarding_status as OnboardingStatus | undefined) ??
-    "not_started";
+  let settings = existingSettings as BusinessSettings | null;
+
+  if (!settings) {
+    const { data: createdSettings } = await supabase
+      .from("business_settings")
+      .insert({
+        business_id: DEFAULT_BUSINESS_ID,
+        ai_assistant_name: "JOHAI",
+        onboarding_status: "not_started",
+      })
+      .select("*")
+      .single();
+
+    settings = createdSettings as BusinessSettings | null;
+  }
 
   return (
-    <DashboardClient
-      leads={leadList}
-      businesses={businessList}
-      onboardingStatus={onboardingStatus}
-      loadError={Boolean(error)}
+    <OnboardingClient
+      business={business as Business}
+      settings={settings}
     />
   );
 }
