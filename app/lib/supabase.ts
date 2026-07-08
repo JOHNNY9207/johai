@@ -16,6 +16,13 @@ export type Lead = {
   status?: LeadStatus;
   notes?: string;
   is_test?: boolean;
+  source?: string;
+  booking_date?: string;
+  booking_time?: string;
+  next_meeting_at?: string;
+  meeting_status?: string;
+  calendly_event_uri?: string;
+  calendly_invitee_uri?: string;
 };
 
 export const leadStatuses = [

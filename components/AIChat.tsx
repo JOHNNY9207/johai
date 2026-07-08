@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarCheck, Send } from "lucide-react";
+import { Send } from "lucide-react";
+import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 
 type Message = {
   role: "user" | "assistant";
@@ -243,15 +244,10 @@ export default function AIChat() {
         )}
 
         {leadSaved && (
-          <a
-            href="https://calendly.com/"
-            target="_blank"
-            rel="noreferrer"
+          <CalendlyBookingButton
+            label="Book My Free AI Audit"
             className="flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-black transition hover:bg-blue-100"
-          >
-            <CalendarCheck size={18} />
-            Book My Free AI Audit
-          </a>
+          />
         )}
 
         {saveError && (

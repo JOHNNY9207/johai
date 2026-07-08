@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 
 export default function Hero() {
   return (
@@ -29,12 +30,11 @@ export default function Hero() {
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
-            <a
-              href="#contact"
+            <CalendlyBookingButton
+              label="Get Free Strategy Call"
+              icon={false}
               className="rounded-xl bg-blue-600 px-8 py-4 font-semibold transition hover:bg-blue-500"
-            >
-              Get Free Strategy Call
-            </a>
+            />
 
             <a
               href="#demo"

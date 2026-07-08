@@ -16,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { leadStatuses, type Lead, type LeadStatus } from "@/app/lib/supabase";
+import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 
 type DashboardClientProps = {
   leads: Lead[];
@@ -50,6 +51,19 @@ function formatDate(date?: string) {
     month: "short",
     day: "numeric",
     year: "numeric",
+  }).format(new Date(date));
+}
+
+function formatDateTime(date?: string) {
+  if (!date) {
+    return "No meeting";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(date));
 }
 
@@ -138,6 +152,25 @@ export default function DashboardClient({
 
   const conversation = getConversation(selectedLead?.conversation);
   const testLeadCount = leadList.filter((lead) => lead.is_test).length;
+  const bookedLeads = leadList.filter(
+    (lead) => normalizeStatus(lead.status) === "Booked"
+  );
+  const bookingConversionRate =
+    leadList.length > 0
+      ? Math.round((bookedLeads.length / leadList.length) * 100)
+      : 0;
+  const now = new Date();
+  const weekFromNow = new Date(now);
+  weekFromNow.setDate(now.getDate() + 7);
+  const upcomingThisWeek = leadList.filter((lead) => {
+    if (!lead.next_meeting_at || lead.meeting_status === "Canceled") {
+      return false;
+    }
+
+    const meetingDate = new Date(lead.next_meeting_at);
+
+    return meetingDate >= now && meetingDate <= weekFromNow;
+  }).length;
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -288,6 +321,16 @@ export default function DashboardClient({
               </h1>
             </div>
 
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/dashboard/settings"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Settings
+              </a>
+              <CalendlyBookingButton className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-500" />
+            </div>
+
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {leadStatuses.map((status) => (
                 <div
@@ -302,6 +345,29 @@ export default function DashboardClient({
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-sm font-medium text-slate-500">
+                Total booked meetings
+              </p>
+              <p className="mt-2 text-3xl font-bold">{bookedLeads.length}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-sm font-medium text-slate-500">
+                Booking conversion rate
+              </p>
+              <p className="mt-2 text-3xl font-bold">
+                {bookingConversionRate}%
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-sm font-medium text-slate-500">
+                Upcoming meetings this week
+              </p>
+              <p className="mt-2 text-3xl font-bold">{upcomingThisWeek}</p>
             </div>
           </div>
 
@@ -404,7 +470,7 @@ export default function DashboardClient({
 
           {!loadError && filteredLeads.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[1120px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Name</th>
@@ -413,6 +479,9 @@ export default function DashboardClient({
                     <th className="px-5 py-3">Business Type</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3">Test</th>
+                    <th className="px-5 py-3">Next Meeting</th>
+                    <th className="px-5 py-3">Booked Date</th>
+                    <th className="px-5 py-3">Meeting Status</th>
                     <th className="px-5 py-3">Created Date</th>
                     <th className="px-5 py-3" />
                   </tr>
@@ -476,6 +545,15 @@ export default function DashboardClient({
                             />
                             Test
                           </label>
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {formatDateTime(lead.next_meeting_at)}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {formatDate(lead.booking_date)}
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {lead.meeting_status ?? "Not booked"}
                         </td>
                         <td className="px-5 py-4 text-slate-600">
                           {formatDate(lead.created_at)}
@@ -557,6 +635,19 @@ export default function DashboardClient({
                   <div className="flex items-center gap-3">
                     <CalendarDays size={17} className="text-slate-400" />
                     {formatDate(selectedLead.created_at)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CalendarDays size={17} className="text-slate-400" />
+                    Next meeting: {formatDateTime(selectedLead.next_meeting_at)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CalendarDays size={17} className="text-slate-400" />
+                    Booked date: {formatDate(selectedLead.booking_date)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={17} className="text-slate-400" />
+                    Meeting status:{" "}
+                    {selectedLead.meeting_status ?? "Not booked"}
                   </div>
                 </div>
               </div>
