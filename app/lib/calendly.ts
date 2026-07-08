@@ -16,6 +16,11 @@ export type PublicCalendlySettings = {
   defaultBookingUrl: string;
 };
 
+export type CalendlyAvailableTime = {
+  startTime: string;
+  schedulingUrl: string;
+};
+
 const fallbackBookingUrl = "https://calendly.com/";
 
 export function maskSecret(value?: string | null) {
@@ -127,5 +132,101 @@ export async function getCalendlyMe(token: string): Promise<CalendlyMe | null> {
     name: data.resource.name ?? "",
     email: data.resource.email,
     scheduling_url: data.resource.scheduling_url,
+  };
+}
+
+async function calendlyFetch<T>(path: string, token: string) {
+  const res = await fetch(`https://api.calendly.com${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  return (await res.json()) as T;
+}
+
+export async function getCalendlyAvailability() {
+  const settings = await getCalendlySettings();
+  const bookingUrl = settings?.default_booking_url?.trim() || fallbackBookingUrl;
+
+  if (!settings?.calendly_pat || !settings.calendly_user_uri) {
+    return {
+      connected: false,
+      bookingUrl,
+      times: [] as CalendlyAvailableTime[],
+      message:
+        "Calendly is not connected yet. Please use the booking button to choose a time.",
+    };
+  }
+
+  const eventTypes = await calendlyFetch<{
+    collection?: Array<{
+      uri?: string;
+      active?: boolean;
+      scheduling_url?: string;
+    }>;
+  }>(
+    `/event_types?${new URLSearchParams({
+      user: settings.calendly_user_uri,
+      active: "true",
+    }).toString()}`,
+    settings.calendly_pat
+  );
+  const eventType = eventTypes?.collection?.find(
+    (item) => item.active !== false && item.uri
+  );
+
+  if (!eventType?.uri) {
+    return {
+      connected: true,
+      bookingUrl,
+      times: [] as CalendlyAvailableTime[],
+      message:
+        "Calendly is connected, but no active event type is available. Please use the booking button to choose a time.",
+    };
+  }
+
+  const start = new Date();
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+
+  const availableTimes = await calendlyFetch<{
+    collection?: Array<{
+      start_time?: string;
+      scheduling_url?: string;
+    }>;
+  }>(
+    `/event_type_available_times?${new URLSearchParams({
+      event_type: eventType.uri,
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+    }).toString()}`,
+    settings.calendly_pat
+  );
+
+  const times =
+    availableTimes?.collection
+      ?.filter((item) => item.start_time)
+      .slice(0, 5)
+      .map((item) => ({
+        startTime: item.start_time!,
+        schedulingUrl:
+          item.scheduling_url || eventType.scheduling_url || bookingUrl,
+      })) ?? [];
+
+  return {
+    connected: true,
+    bookingUrl,
+    times,
+    message:
+      times.length > 0
+        ? "Calendly availability loaded."
+        : "Calendly is connected, but no available times were returned for the next 7 days. Please use the booking button to choose a time.",
   };
 }

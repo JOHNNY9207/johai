@@ -22,6 +22,16 @@ type ChatResponse = {
   lead?: Partial<LeadData>;
 };
 
+type CalendlyAvailabilityResponse = {
+  connected?: boolean;
+  bookingUrl?: string;
+  message?: string;
+  times?: Array<{
+    startTime: string;
+    schedulingUrl: string;
+  }>;
+};
+
 const quickPrompts = [
   "I own a dental clinic.",
   "I own a restaurant.",
@@ -49,6 +59,53 @@ function hasValidEmail(lead: LeadData) {
   return emailPattern.test(lead.email);
 }
 
+function isBookingIntent(text: string) {
+  return /\b(book|booking|call|meeting|appointment|schedule|calendly|audit)\b/i.test(
+    text
+  );
+}
+
+function formatAvailabilityTime(startTime: string) {
+  return new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(startTime));
+}
+
+async function getAvailabilityMessage() {
+  try {
+    const res = await fetch("/api/calendly/availability");
+
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = (await res.json()) as CalendlyAvailabilityResponse;
+
+    if (data.times?.length) {
+      const times = data.times
+        .map(
+          (time, index) =>
+            `${index + 1}. ${formatAvailabilityTime(time.startTime)}`
+        )
+        .join("\n");
+
+      return `Here are the next available meeting times I found:\n\n${times}\n\nUse the booking button below to confirm the exact time in Calendly.`;
+    }
+
+    if (data.message) {
+      return `${data.message}\n\nBooking URL: ${data.bookingUrl ?? "https://calendly.com/"}`;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  return "I couldn't load live Calendly availability right now. Please use the booking button below to choose a time.";
+}
+
 export default function AIChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -63,6 +120,7 @@ export default function AIChat() {
   const [leadSaved, setLeadSaved] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [showBookingButton, setShowBookingButton] = useState(false);
 
   const [lead, setLead] = useState<LeadData>({
     first_name: "",
@@ -134,6 +192,7 @@ export default function AIChat() {
       role: "user",
       content: text,
     };
+    const wantsToBook = isBookingIntent(text);
 
     const updatedMessages = [...messages, userMessage];
 
@@ -185,6 +244,21 @@ export default function AIChat() {
       setMessages(finalConversation);
 
       await saveLead(extractedLead, finalConversation, aiReply);
+
+      if (wantsToBook) {
+        setShowBookingButton(true);
+        const availabilityMessage = await getAvailabilityMessage();
+
+        if (availabilityMessage) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: availabilityMessage,
+            },
+          ]);
+        }
+      }
     } catch (error) {
       console.error(error);
 
@@ -243,7 +317,7 @@ export default function AIChat() {
           </div>
         )}
 
-        {leadSaved && (
+        {(leadSaved || showBookingButton) && (
           <CalendlyBookingButton
             label="Book My Free AI Audit"
             className="flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-black transition hover:bg-blue-100"
