@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import {
+  Bot,
+  Check,
+  Copy,
+  Loader2,
+  Send,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 
 type Message = {
@@ -39,6 +47,22 @@ const quickPrompts = [
   "I run a real estate business.",
 ];
 
+const leadSteps: Array<keyof LeadData> = [
+  "business_type",
+  "biggest_problem",
+  "business_name",
+  "first_name",
+  "email",
+];
+
+const leadStepLabels: Record<keyof LeadData, string> = {
+  first_name: "Name",
+  email: "Email",
+  business_name: "Business",
+  business_type: "Industry",
+  biggest_problem: "Problem",
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function cleanLeadValue(value: unknown) {
@@ -73,6 +97,26 @@ function formatAvailabilityTime(startTime: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(startTime));
+}
+
+function renderMessage(content: string) {
+  return content.split("\n").map((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return <br key={index} />;
+    }
+
+    if (/^\d+\./.test(trimmed)) {
+      return (
+        <p key={index} className="pl-1">
+          {trimmed}
+        </p>
+      );
+    }
+
+    return <p key={index}>{trimmed}</p>;
+  });
 }
 
 async function getAvailabilityMessage() {
@@ -121,6 +165,7 @@ export default function AIChat() {
   const [savingLead, setSavingLead] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showBookingButton, setShowBookingButton] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const [lead, setLead] = useState<LeadData>({
     first_name: "",
@@ -129,6 +174,16 @@ export default function AIChat() {
     business_type: "",
     biggest_problem: "",
   });
+
+  async function copyMessage(content: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      window.setTimeout(() => setCopiedIndex(null), 1200);
+    } catch {
+      setCopiedIndex(null);
+    }
+  }
 
   async function saveLead(
     nextLead: LeadData,
@@ -221,8 +276,7 @@ export default function AIChat() {
 
       const extractedLead: LeadData = {
         first_name: cleanLeadValue(data.lead?.first_name) || lead.first_name,
-        email:
-          cleanLeadValue(data.lead?.email).toLowerCase() || lead.email,
+        email: cleanLeadValue(data.lead?.email).toLowerCase() || lead.email,
         business_name:
           cleanLeadValue(data.lead?.business_name) || lead.business_name,
         business_type:
@@ -275,35 +329,83 @@ export default function AIChat() {
   }
 
   return (
-    <div className="flex h-[560px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0B1220] shadow-2xl">
-      <div className="border-b border-white/10 bg-blue-600 p-5">
-        <h3 className="text-xl font-bold text-white">JOHAI AI Assistant</h3>
-        <p className="text-sm text-blue-100">
-          Get a quick automation audit for your business.
-        </p>
+    <div className="flex h-[620px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#07111f]/95 text-white shadow-2xl shadow-sky-950/40 backdrop-blur-xl">
+      <div className="border-b border-white/10 bg-white/[0.04] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950">
+            <Bot size={22} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="truncate text-base font-semibold">
+                JOHAI AI Assistant
+              </h3>
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            </div>
+            <p className="text-xs text-slate-400">
+              Live automation audit and lead capture
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-5">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`max-w-[85%] whitespace-pre-line rounded-2xl p-4 ${
-              message.role === "user"
-                ? "ml-auto bg-blue-600 text-white"
-                : "bg-white/10 text-gray-100"
-            }`}
-          >
-            {message.content}
-          </div>
-        ))}
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5">
+        {messages.map((message, index) => {
+          const isUser = message.role === "user";
+
+          return (
+            <div
+              key={index}
+              className={`group flex gap-3 ${isUser ? "justify-end" : ""}`}
+            >
+              {!isUser && (
+                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-200">
+                  <Sparkles size={16} />
+                </div>
+              )}
+
+              <div
+                className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-lg ${
+                  isUser
+                    ? "bg-cyan-400 text-slate-950 shadow-cyan-950/20"
+                    : "border border-white/10 bg-white/[0.06] text-slate-100 shadow-black/20"
+                }`}
+              >
+                <div className="space-y-1 whitespace-pre-line">
+                  {renderMessage(message.content)}
+                </div>
+                {!isUser && (
+                  <button
+                    type="button"
+                    onClick={() => copyMessage(message.content, index)}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-slate-400 opacity-0 transition hover:text-white group-hover:opacity-100"
+                  >
+                    {copiedIndex === index ? (
+                      <Check size={13} />
+                    ) : (
+                      <Copy size={13} />
+                    )}
+                    {copiedIndex === index ? "Copied" : "Copy"}
+                  </button>
+                )}
+              </div>
+
+              {isUser && (
+                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-slate-200">
+                  <UserRound size={16} />
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {messages.length === 1 && (
-          <div className="grid gap-2">
+          <div className="grid gap-2 pt-2">
             {quickPrompts.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => sendMessage(prompt)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-gray-200 transition hover:bg-white/10"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-slate-200 transition hover:border-cyan-300/40 hover:bg-cyan-300/10"
               >
                 {prompt}
               </button>
@@ -312,66 +414,49 @@ export default function AIChat() {
         )}
 
         {loading && (
-          <div className="max-w-[85%] rounded-2xl bg-white/10 p-4 text-gray-300">
-            JOHAI is thinking...
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
+            <Loader2 className="animate-spin text-cyan-300" size={17} />
+            JOHAI is thinking
+            <span className="inline-flex gap-1">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:120ms]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:240ms]" />
+            </span>
           </div>
         )}
 
         {(leadSaved || showBookingButton) && (
           <CalendlyBookingButton
             label="Book My Free AI Audit"
-            className="flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 font-bold text-black transition hover:bg-blue-100"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100"
           />
         )}
 
         {saveError && (
-          <div className="max-w-[85%] rounded-2xl bg-red-500/10 p-4 text-sm text-red-200">
+          <div className="rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200">
             {saveError}
           </div>
         )}
       </div>
 
-      <div className="border-t border-white/10 p-4">
-        <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-          {!lead.business_type && (
-            <span className="rounded-full bg-white/10 px-3 py-2 text-gray-300">
-              Need: business type
+      <div className="border-t border-white/10 bg-white/[0.03] p-4">
+        <div className="mb-3 flex flex-wrap gap-2">
+          {leadSteps.map((step) => (
+            <span
+              key={step}
+              className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
+                lead[step]
+                  ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200"
+                  : "border-white/10 bg-white/[0.04] text-slate-400"
+              }`}
+            >
+              {lead[step] ? "Saved" : "Need"} {leadStepLabels[step]}
             </span>
-          )}
-
-          {!lead.biggest_problem && (
-            <span className="rounded-full bg-white/10 px-3 py-2 text-gray-300">
-              Need: main problem
-            </span>
-          )}
-
-          {!lead.business_name && (
-            <span className="rounded-full bg-white/10 px-3 py-2 text-gray-300">
-              Need: business name
-            </span>
-          )}
-
-          {!lead.first_name && (
-            <span className="rounded-full bg-white/10 px-3 py-2 text-gray-300">
-              Need: first name
-            </span>
-          )}
-
-          {!lead.email && (
-            <span className="rounded-full bg-white/10 px-3 py-2 text-gray-300">
-              Need: email
-            </span>
-          )}
-
-          {leadSaved && (
-            <span className="col-span-2 rounded-full bg-green-500/20 px-3 py-2 text-green-300">
-              Lead saved in JOHAI CRM
-            </span>
-          )}
+          ))}
 
           {savingLead && (
-            <span className="col-span-2 rounded-full bg-blue-500/20 px-3 py-2 text-blue-200">
-              Saving lead...
+            <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200">
+              Saving lead
             </span>
           )}
         </div>
@@ -383,14 +468,14 @@ export default function AIChat() {
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
-            placeholder="Type your message..."
-            className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-white outline-none placeholder:text-gray-500"
+            placeholder="Ask about automation, costs, booking..."
+            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-4 focus:ring-cyan-300/10"
           />
 
           <button
             onClick={() => sendMessage()}
             disabled={loading || savingLead}
-            className="rounded-xl bg-blue-600 px-4 transition hover:bg-blue-500"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Send message"
           >
             <Send size={18} />
