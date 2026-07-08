@@ -7,6 +7,7 @@ import {
 import {
   createSupabaseServerClient,
   DEFAULT_BUSINESS_ID,
+  type KnowledgeFile,
   type KnowledgeItem,
 } from "@/app/lib/supabase";
 import KnowledgeClient from "./KnowledgeClient";
@@ -40,6 +41,16 @@ export default async function KnowledgePage() {
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: false });
+  const { data: files } = await supabase
+    .from("knowledge_files")
+    .select("*")
+    .eq("business_id", DEFAULT_BUSINESS_ID)
+    .order("created_at", { ascending: false });
 
-  return <KnowledgeClient initialItems={(data ?? []) as KnowledgeItem[]} />;
+  return (
+    <KnowledgeClient
+      initialItems={(data ?? []) as KnowledgeItem[]}
+      initialFiles={(files ?? []) as KnowledgeFile[]}
+    />
+  );
 }

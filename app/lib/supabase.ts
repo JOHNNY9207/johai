@@ -117,6 +117,52 @@ export type KnowledgeItem = {
   updated_at?: string;
 };
 
+export const knowledgeUploadStatuses = [
+  "Uploading",
+  "Uploaded",
+  "Failed",
+] as const;
+
+export type KnowledgeUploadStatus = (typeof knowledgeUploadStatuses)[number];
+
+export const knowledgeProcessingStatuses = [
+  "Queued",
+  "Processing",
+  "Ready",
+  "Failed",
+] as const;
+
+export type KnowledgeProcessingStatus =
+  (typeof knowledgeProcessingStatuses)[number];
+
+export type KnowledgeFile = {
+  id: string;
+  business_id: string;
+  knowledge_item_id: string;
+  filename: string;
+  original_filename: string;
+  file_type: string;
+  mime_type: string;
+  file_size: number;
+  storage_path: string;
+  upload_status: KnowledgeUploadStatus;
+  processing_status: KnowledgeProcessingStatus;
+  chunk_count: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type KnowledgeChunk = {
+  id: string;
+  business_id: string;
+  knowledge_file_id: string;
+  chunk_index: number;
+  content: string;
+  token_count: number;
+  embedding_status: string;
+  created_at?: string;
+};
+
 export const followUpStatuses = [
   "Waiting",
   "Reminder 1 sent",
