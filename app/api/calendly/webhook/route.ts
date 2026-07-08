@@ -126,6 +126,9 @@ export async function POST(req: Request) {
       status: "Booked",
       source: "Calendly",
       meeting_status: meetingStatus,
+      booked_meeting: meetingStatus !== "Canceled",
+      follow_up_status:
+        meetingStatus === "Canceled" ? "Waiting" : "Meeting booked",
       calendly_event_uri: payload?.scheduled_event?.uri ?? "",
       calendly_invitee_uri: payload?.uri ?? "",
       ...formatBookingDate(startTime),

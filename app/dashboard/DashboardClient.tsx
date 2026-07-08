@@ -15,11 +15,18 @@ import {
   StickyNote,
   UserRound,
 } from "lucide-react";
-import { leadStatuses, type Lead, type LeadStatus } from "@/app/lib/supabase";
+import {
+  followUpStatuses,
+  leadStatuses,
+  type Lead,
+  type Business,
+  type LeadStatus,
+} from "@/app/lib/supabase";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 
 type DashboardClientProps = {
   leads: Lead[];
+  businesses: Business[];
   loadError?: boolean;
 };
 
@@ -76,8 +83,19 @@ function getConversation(conversation: unknown): ConversationMessage[] {
     : [];
 }
 
+function emailStatusLabel(sent?: boolean) {
+  return sent ? "Sent" : "Not sent";
+}
+
+function emailStatusClass(sent?: boolean) {
+  return sent
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-slate-200 bg-slate-50 text-slate-500";
+}
+
 export default function DashboardClient({
   leads,
+  businesses,
   loadError,
 }: DashboardClientProps) {
   const [leadList, setLeadList] = useState(leads);
@@ -171,6 +189,16 @@ export default function DashboardClient({
 
     return meetingDate >= now && meetingDate <= weekFromNow;
   }).length;
+  const followUpCounts = followUpStatuses.reduce<Record<string, number>>(
+    (counts, status) => {
+      counts[status] = leadList.filter(
+        (lead) => (lead.follow_up_status ?? "Waiting") === status
+      ).length;
+
+      return counts;
+    },
+    {}
+  );
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -371,6 +399,83 @@ export default function DashboardClient({
             </div>
           </div>
 
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold">Businesses</h2>
+              <p className="text-sm text-slate-500">
+                Platform accounts prepared for future business logins.
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Business</th>
+                    <th className="px-4 py-3">Slug</th>
+                    <th className="px-4 py-3">Plan</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {businesses.length === 0 && (
+                    <tr>
+                      <td className="px-4 py-4 text-slate-500" colSpan={5}>
+                        No businesses found. Apply the multi-tenant migration to
+                        create the default JOHAI business.
+                      </td>
+                    </tr>
+                  )}
+                  {businesses.map((business) => (
+                    <tr key={business.id}>
+                      <td className="px-4 py-4 font-semibold">
+                        {business.name}
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {business.slug}
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {business.plan ?? "internal"}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          {business.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-slate-600">
+                        {formatDate(business.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold">Follow-up Engine</h2>
+              <p className="text-sm text-slate-500">
+                Automated reminders stop once a meeting is booked.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-5">
+              {followUpStatuses.map((status) => (
+                <div
+                  key={status}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                >
+                  <p className="text-xs font-medium text-slate-500">
+                    {status}
+                  </p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {followUpCounts[status] ?? 0}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-3 xl:grid-cols-[1fr_190px_220px_190px_auto]">
             <label className="relative block">
               <Search
@@ -470,7 +575,7 @@ export default function DashboardClient({
 
           {!loadError && filteredLeads.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1120px] text-left text-sm">
+              <table className="w-full min-w-[1280px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Name</th>
@@ -482,6 +587,9 @@ export default function DashboardClient({
                     <th className="px-5 py-3">Next Meeting</th>
                     <th className="px-5 py-3">Booked Date</th>
                     <th className="px-5 py-3">Meeting Status</th>
+                    <th className="px-5 py-3">Owner Email</th>
+                    <th className="px-5 py-3">Prospect Email</th>
+                    <th className="px-5 py-3">Follow-up</th>
                     <th className="px-5 py-3">Created Date</th>
                     <th className="px-5 py-3" />
                   </tr>
@@ -554,6 +662,27 @@ export default function DashboardClient({
                         </td>
                         <td className="px-5 py-4 text-slate-600">
                           {lead.meeting_status ?? "Not booked"}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${emailStatusClass(
+                              lead.owner_email_sent
+                            )}`}
+                          >
+                            {emailStatusLabel(lead.owner_email_sent)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${emailStatusClass(
+                              lead.prospect_email_sent
+                            )}`}
+                          >
+                            {emailStatusLabel(lead.prospect_email_sent)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-slate-600">
+                          {lead.follow_up_status ?? "Waiting"}
                         </td>
                         <td className="px-5 py-4 text-slate-600">
                           {formatDate(lead.created_at)}
@@ -629,6 +758,15 @@ export default function DashboardClient({
                     {selectedLead.email}
                   </div>
                   <div className="flex items-center gap-3">
+                    <Mail size={17} className="text-slate-400" />
+                    Owner email: {emailStatusLabel(selectedLead.owner_email_sent)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Mail size={17} className="text-slate-400" />
+                    Prospect email:{" "}
+                    {emailStatusLabel(selectedLead.prospect_email_sent)}
+                  </div>
+                  <div className="flex items-center gap-3">
                     <UserRound size={17} className="text-slate-400" />
                     {selectedLead.business_type}
                   </div>
@@ -649,11 +787,31 @@ export default function DashboardClient({
                     Meeting status:{" "}
                     {selectedLead.meeting_status ?? "Not booked"}
                   </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={17} className="text-slate-400" />
+                    Follow-up: {selectedLead.follow_up_status ?? "Waiting"}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CalendarDays size={17} className="text-slate-400" />
+                    Last follow-up:{" "}
+                    {formatDateTime(selectedLead.last_follow_up_at)}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={17} className="text-slate-400" />
+                    Reminders sent: {selectedLead.follow_up_count ?? 0}/3
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-6 overflow-y-auto p-6">
                 <section>
+                  {selectedLead.email_error && (
+                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                      <p className="font-bold">Email issue</p>
+                      <p>{selectedLead.email_error}</p>
+                    </div>
+                  )}
+
                   <div className="mb-3 flex items-center gap-2">
                     <CheckCircle2 size={18} className="text-blue-600" />
                     <h3 className="font-bold">AI Recommendations</h3>

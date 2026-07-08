@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendQualifiedLeadEmails } from "@/app/lib/email";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
 
 type LeadRequestBody = {
@@ -30,6 +31,9 @@ export async function POST(req: Request) {
       biggest_problem: cleanValue(body.biggest_problem),
       ai_recommendations: cleanValue(body.ai_recommendations),
       conversation: body.conversation ?? [],
+      follow_up_status: "Waiting",
+      follow_up_count: 0,
+      booked_meeting: false,
     };
 
     const missingFields = [
@@ -74,6 +78,29 @@ export async function POST(req: Request) {
         },
         { status: 500 }
       );
+    }
+
+    try {
+      const crmUrl = new URL("/dashboard", req.url).toString();
+      const emailResult = await sendQualifiedLeadEmails({
+        lead: data,
+        crmUrl,
+      });
+
+      const { error: emailStatusError } = await supabase
+        .from("leads")
+        .update({
+          owner_email_sent: emailResult.ownerEmailSent,
+          prospect_email_sent: emailResult.prospectEmailSent,
+          email_error: emailResult.emailError,
+        })
+        .eq("id", data.id);
+
+      if (emailStatusError) {
+        console.error("Lead email status update failed:", emailStatusError.message);
+      }
+    } catch (emailError) {
+      console.error("Lead email notification failed:", emailError);
     }
 
     return NextResponse.json({ success: true, lead: data });

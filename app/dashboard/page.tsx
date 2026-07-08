@@ -4,7 +4,11 @@ import {
   isDashboardAuthenticated,
   isDashboardPasswordConfigured,
 } from "@/app/lib/dashboard-auth";
-import { createSupabaseServerClient, type Lead } from "@/app/lib/supabase";
+import {
+  createSupabaseServerClient,
+  type Business,
+  type Lead,
+} from "@/app/lib/supabase";
 import DashboardClient from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -36,8 +40,19 @@ export default async function Dashboard() {
     .from("leads")
     .select("*")
     .order("created_at", { ascending: false });
+  const { data: businesses } = await supabase
+    .from("businesses")
+    .select("*")
+    .order("created_at", { ascending: true });
 
   const leadList = (leads ?? []) as Lead[];
+  const businessList = (businesses ?? []) as Business[];
 
-  return <DashboardClient leads={leadList} loadError={Boolean(error)} />;
+  return (
+    <DashboardClient
+      leads={leadList}
+      businesses={businessList}
+      loadError={Boolean(error)}
+    />
+  );
 }

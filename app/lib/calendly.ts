@@ -1,9 +1,13 @@
 import "server-only";
 
-import { createSupabaseServerClient } from "@/app/lib/supabase";
+import {
+  DEFAULT_BUSINESS_ID,
+  createSupabaseServerClient,
+} from "@/app/lib/supabase";
 
 export type CalendlySettings = {
   id?: string;
+  business_id?: string;
   calendly_pat: string;
   calendly_user_uri: string;
   calendly_account_name: string;
@@ -40,6 +44,7 @@ export async function getCalendlySettings() {
   const { data, error } = await supabase
     .from("calendly_settings")
     .select("*")
+    .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -67,6 +72,7 @@ export async function upsertCalendlySettings(
   const supabase = createSupabaseServerClient();
   const current = await getCalendlySettings();
   const payload = {
+    business_id: DEFAULT_BUSINESS_ID,
     ...settings,
     updated_at: new Date().toISOString(),
   };
