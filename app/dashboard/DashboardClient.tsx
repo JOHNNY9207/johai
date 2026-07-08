@@ -60,12 +60,60 @@ type DashboardClientProps = {
   businessBrainTemplate?: IndustryTemplate;
   autonomousAudit?: AuditReport;
   auditHistory?: AuditReport[];
+  gettingStarted?: GettingStartedExperience;
   loadError?: boolean;
 };
 
 type ConversationMessage = {
   role?: string;
   content?: string;
+};
+
+type SetupStatus = "complete" | "warning" | "missing";
+
+type GettingStartedItem = {
+  label: string;
+  status: SetupStatus;
+  detail: string;
+};
+
+type DailyAiReport = {
+  documentsLearned: number;
+  leadsCaptured: number;
+  appointmentsBooked: number;
+  emailsSent: number;
+  recommendations: number;
+  missingInformation: number;
+};
+
+type AiTask = {
+  title: string;
+  detail: string;
+  priority: string;
+  category: string;
+};
+
+type TimelineEvent = {
+  time: string;
+  title: string;
+  detail: string;
+  status: "complete" | "pending";
+};
+
+type GettingStartedExperience = {
+  welcomeMessage: string;
+  progress: number;
+  estimatedSetupTime: string;
+  aiReadiness: number;
+  businessBrainProgress: number;
+  knowledgeProgress: number;
+  calendlyStatus: SetupStatus;
+  emailStatus: SetupStatus;
+  websiteStatus: SetupStatus;
+  setupItems: readonly GettingStartedItem[];
+  dailyReport: DailyAiReport;
+  tasks: AiTask[];
+  timeline: TimelineEvent[];
 };
 
 const statusStyles: Record<LeadStatus, string> = {
@@ -134,6 +182,30 @@ function emailStatusClass(sent?: boolean) {
     : "border-white/10 bg-white/[0.06] text-slate-400";
 }
 
+function setupStatusClass(status: SetupStatus) {
+  if (status === "complete") {
+    return "border-emerald-300/30 bg-emerald-300/10 text-emerald-100";
+  }
+
+  if (status === "warning") {
+    return "border-amber-300/30 bg-amber-300/10 text-amber-100";
+  }
+
+  return "border-rose-300/30 bg-rose-300/10 text-rose-100";
+}
+
+function setupStatusLabel(status: SetupStatus) {
+  if (status === "complete") {
+    return "Ready";
+  }
+
+  if (status === "warning") {
+    return "Needs review";
+  }
+
+  return "Missing";
+}
+
 function Card({
   children,
   className = "",
@@ -193,6 +265,7 @@ export default function DashboardClient({
   businessBrainTemplate,
   autonomousAudit,
   auditHistory = [],
+  gettingStarted,
   loadError,
 }: DashboardClientProps) {
   const [leadList, setLeadList] = useState(leads);
@@ -604,6 +677,243 @@ export default function DashboardClient({
                   </Link>
                 </div>
               </section>
+            )}
+
+            {gettingStarted && (
+              <Card className="mb-6 overflow-hidden rounded-3xl">
+                <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-4xl">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300 text-slate-950">
+                          <Bot size={23} />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                            AI Welcome Center
+                          </p>
+                          <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
+                            First 24 hours command center
+                          </h1>
+                        </div>
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-slate-300">
+                        {gettingStarted.welcomeMessage}
+                      </p>
+                    </div>
+
+                    <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[430px]">
+                      {[
+                        ["AI readiness", `${gettingStarted.aiReadiness}%`],
+                        ["Setup time", gettingStarted.estimatedSetupTime],
+                        ["Business Brain", `${gettingStarted.businessBrainProgress}%`],
+                        ["Knowledge", `${gettingStarted.knowledgeProgress}%`],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                        >
+                          <p className="text-xs uppercase tracking-wide text-slate-500">
+                            {label}
+                          </p>
+                          <p className="mt-2 text-2xl font-semibold text-white">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="font-semibold text-slate-200">
+                        AI Setup Progress
+                      </span>
+                      <span className="text-cyan-200">
+                        {gettingStarted.progress}%
+                      </span>
+                    </div>
+                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-cyan-300 transition-all"
+                        style={{ width: `${gettingStarted.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-0 xl:grid-cols-[1.25fr_0.85fr]">
+                  <div className="border-white/10 p-5 lg:p-6 xl:border-r">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {gettingStarted.setupItems.map((item) => {
+                        const Icon =
+                          item.status === "complete"
+                            ? CheckCircle2
+                            : item.status === "warning"
+                              ? ShieldAlert
+                              : Clock3;
+
+                        return (
+                          <div
+                            key={item.label}
+                            className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-slate-100">
+                                  {item.label}
+                                </p>
+                                <p className="mt-2 text-xs leading-5 text-slate-500">
+                                  {item.detail}
+                                </p>
+                              </div>
+                              <span
+                                className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${setupStatusClass(item.status)}`}
+                              >
+                                <Icon size={13} />
+                                {setupStatusLabel(item.status)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <h2 className="font-semibold text-slate-100">
+                            Daily AI Report
+                          </h2>
+                          <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-400">
+                            Today
+                          </span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {[
+                            ["Documents learned", gettingStarted.dailyReport.documentsLearned],
+                            ["Leads captured", gettingStarted.dailyReport.leadsCaptured],
+                            ["Appointments booked", gettingStarted.dailyReport.appointmentsBooked],
+                            ["Emails sent", gettingStarted.dailyReport.emailsSent],
+                            ["Recommendations", gettingStarted.dailyReport.recommendations],
+                            ["Missing information", gettingStarted.dailyReport.missingInformation],
+                          ].map(([label, value]) => (
+                            <div
+                              key={label}
+                              className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                            >
+                              <p className="text-xs uppercase tracking-wide text-slate-500">
+                                {label}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold">
+                                {value}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <h2 className="font-semibold text-slate-100">
+                            AI Tasks
+                          </h2>
+                          <Link
+                            href="/dashboard/knowledge"
+                            className="text-xs font-semibold text-cyan-200 transition hover:text-cyan-100"
+                          >
+                            Open Knowledge
+                          </Link>
+                        </div>
+                        <div className="space-y-3">
+                          {gettingStarted.tasks.map((task) => (
+                            <div
+                              key={`${task.category}-${task.title}`}
+                              className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-slate-100">
+                                    {task.title}
+                                  </p>
+                                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                                    {task.detail}
+                                  </p>
+                                </div>
+                                <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-[11px] font-semibold text-cyan-100">
+                                  {task.category}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {gettingStarted.tasks.length === 0 && (
+                            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                              No urgent setup tasks. JOHAI is ready for the next lead.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 lg:p-6">
+                    <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                      {[
+                        ["Calendly", gettingStarted.calendlyStatus],
+                        ["Email", gettingStarted.emailStatus],
+                        ["Website", gettingStarted.websiteStatus],
+                      ].map(([label, status]) => (
+                        <div
+                          key={label}
+                          className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                        >
+                          <p className="text-xs uppercase tracking-wide text-slate-500">
+                            {label} status
+                          </p>
+                          <p
+                            className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${setupStatusClass(status as SetupStatus)}`}
+                          >
+                            {setupStatusLabel(status as SetupStatus)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="font-semibold text-slate-100">
+                        AI Success Timeline
+                      </h2>
+                      <div className="mt-4 space-y-4">
+                        {gettingStarted.timeline.map((event) => (
+                          <div key={`${event.time}-${event.title}`} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <span
+                                className={`mt-1 h-3 w-3 rounded-full ${
+                                  event.status === "complete"
+                                    ? "bg-cyan-300"
+                                    : "bg-white/30"
+                                }`}
+                              />
+                              <span className="mt-2 h-full w-px bg-white/10" />
+                            </div>
+                            <div className="pb-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {event.time}
+                              </p>
+                              <p className="mt-1 font-semibold text-slate-100">
+                                {event.title}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {event.detail}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             )}
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
