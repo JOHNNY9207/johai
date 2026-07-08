@@ -45,6 +45,12 @@ import {
   type OrchestrationLog,
 } from "@/app/lib/supabase";
 import type { IndustryTemplate } from "@/app/lib/business-brain";
+import type {
+  ChiefOfStaffBriefing,
+  ExecutiveCardType,
+  ExecutivePriority,
+} from "@/app/lib/chief-of-staff";
+import type { MorningBrief, MorningBriefPriority } from "@/app/lib/morning-brief";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import type { LucideIcon } from "lucide-react";
 
@@ -60,6 +66,8 @@ type DashboardClientProps = {
   businessBrainTemplate?: IndustryTemplate;
   autonomousAudit?: AuditReport;
   auditHistory?: AuditReport[];
+  morningBrief?: MorningBrief;
+  chiefOfStaffBriefing?: ChiefOfStaffBriefing;
   gettingStarted?: GettingStartedExperience;
   loadError?: boolean;
 };
@@ -206,6 +214,34 @@ function setupStatusLabel(status: SetupStatus) {
   return "Missing";
 }
 
+function priorityClass(priority: MorningBriefPriority | ExecutivePriority) {
+  if (priority === "High") {
+    return "border-rose-300/30 bg-rose-300/10 text-rose-100";
+  }
+
+  if (priority === "Medium") {
+    return "border-amber-300/30 bg-amber-300/10 text-amber-100";
+  }
+
+  return "border-cyan-300/30 bg-cyan-300/10 text-cyan-100";
+}
+
+function executiveCardClass(type: ExecutiveCardType) {
+  if (type === "High Priority" || type === "Risk") {
+    return "border-rose-300/25 bg-rose-300/10";
+  }
+
+  if (type === "Opportunity" || type === "Success") {
+    return "border-emerald-300/25 bg-emerald-300/10";
+  }
+
+  if (type === "Recommendation") {
+    return "border-amber-300/25 bg-amber-300/10";
+  }
+
+  return "border-cyan-300/25 bg-cyan-300/10";
+}
+
 function Card({
   children,
   className = "",
@@ -265,6 +301,8 @@ export default function DashboardClient({
   businessBrainTemplate,
   autonomousAudit,
   auditHistory = [],
+  morningBrief,
+  chiefOfStaffBriefing,
   gettingStarted,
   loadError,
 }: DashboardClientProps) {
@@ -679,6 +717,521 @@ export default function DashboardClient({
               </section>
             )}
 
+            {morningBrief && (
+              <Card className="mb-6 overflow-hidden rounded-3xl">
+                <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-4xl">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950">
+                          <Sparkles size={23} />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                            Today&apos;s Brief
+                          </p>
+                          <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
+                            {morningBrief.greeting}
+                          </h1>
+                        </div>
+                      </div>
+                      <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+                        Here is what happened, what matters, and what JOHAI
+                        recommends for {morningBrief.businessName} today.
+                      </p>
+                    </div>
+
+                    <div className="grid min-w-full gap-3 sm:grid-cols-3 xl:min-w-[520px]">
+                      {[
+                        ["Date", morningBrief.currentDate],
+                        ["Business", morningBrief.businessName],
+                        ["AI Employee", morningBrief.aiEmployeeStatus],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                        >
+                          <p className="text-xs uppercase tracking-wide text-slate-500">
+                            {label}
+                          </p>
+                          <p className="mt-2 text-sm font-semibold leading-5 text-white">
+                            {value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-0 xl:grid-cols-[1.15fr_0.85fr]">
+                  <div className="border-white/10 p-5 lg:p-6 xl:border-r">
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="font-semibold text-slate-100">
+                        What happened since your last visit
+                      </h2>
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-400">
+                        Last 24 hours
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {morningBrief.happenedSinceLastVisit.map((metric) => (
+                        <div
+                          key={metric.label}
+                          className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                        >
+                          <p className="text-xs uppercase tracking-wide text-slate-500">
+                            {metric.label}
+                          </p>
+                          <p className="mt-2 text-3xl font-semibold">
+                            {metric.value}
+                          </p>
+                          <p className="mt-2 text-xs leading-5 text-slate-500">
+                            {metric.detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                      <div>
+                        <h2 className="mb-3 font-semibold text-slate-100">
+                          Priority Inbox
+                        </h2>
+                        <div className="space-y-3">
+                          {["High", "Medium", "Low"].map((priority) => {
+                            const items = morningBrief.priorityInbox.filter(
+                              (item) => item.priority === priority
+                            );
+
+                            return (
+                              <div
+                                key={priority}
+                                className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <p className="font-semibold text-slate-100">
+                                    {priority} Priority
+                                  </p>
+                                  <span
+                                    className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(priority as MorningBriefPriority)}`}
+                                  >
+                                    {items.length}
+                                  </span>
+                                </div>
+                                <div className="mt-3 space-y-3">
+                                  {items.length === 0 && (
+                                    <p className="text-xs leading-5 text-slate-500">
+                                      Nothing urgent in this lane.
+                                    </p>
+                                  )}
+                                  {items.map((item) => (
+                                    <div key={item.title}>
+                                      <p className="text-sm font-semibold text-slate-200">
+                                        {item.title}
+                                      </p>
+                                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                                        {item.why}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h2 className="mb-3 font-semibold text-slate-100">
+                          AI Recommendations
+                        </h2>
+                        <div className="space-y-3">
+                          {morningBrief.recommendations.map((recommendation) => (
+                            <div
+                              key={recommendation.title}
+                              className="rounded-2xl border border-white/10 bg-white/[0.045] p-4"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="font-semibold text-slate-100">
+                                  {recommendation.title}
+                                </p>
+                                <span
+                                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(recommendation.priority)}`}
+                                >
+                                  {recommendation.priority}
+                                </span>
+                              </div>
+                              <div className="mt-3 grid gap-2 text-xs leading-5 text-slate-500 sm:grid-cols-2">
+                                <p>
+                                  Impact:{" "}
+                                  <span className="text-slate-300">
+                                    {recommendation.estimatedImpact}
+                                  </span>
+                                </p>
+                                <p>
+                                  Time:{" "}
+                                  <span className="text-slate-300">
+                                    {recommendation.estimatedCompletionTime}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Business Health
+                      </h2>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {morningBrief.businessHealth.map((health) => (
+                          <div
+                            key={health.label}
+                            className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-slate-200">
+                                {health.label}
+                              </p>
+                              <span className="text-sm font-semibold text-cyan-200">
+                                {health.score}%
+                              </span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className="h-full rounded-full bg-cyan-300"
+                                style={{ width: `${health.score}%` }}
+                              />
+                            </div>
+                            <p className="mt-3 text-xs leading-5 text-slate-500">
+                              {health.detail}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 lg:p-6">
+                    <div>
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Today&apos;s Opportunities
+                      </h2>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                        {morningBrief.opportunities.map((opportunity) => (
+                          <div
+                            key={opportunity.title}
+                            className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold text-slate-100">
+                                  {opportunity.title}
+                                </p>
+                                <p className="mt-2 text-xs leading-5 text-slate-500">
+                                  {opportunity.detail}
+                                </p>
+                              </div>
+                              <span className="text-2xl font-semibold text-white">
+                                {opportunity.value}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                        AI Focus Today
+                      </p>
+                      <p className="mt-3 text-sm leading-6 text-slate-100">
+                        {morningBrief.aiFocusToday}
+                      </p>
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Success Timeline
+                      </h2>
+                      <div className="space-y-4">
+                        {morningBrief.successTimeline.length === 0 && (
+                          <p className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6 text-slate-400">
+                            No completed activity yet today. JOHAI is ready to
+                            capture the next signal.
+                          </p>
+                        )}
+                        {morningBrief.successTimeline.map((event) => (
+                          <div key={`${event.time}-${event.title}-${event.detail}`} className="flex gap-3">
+                            <div className="flex flex-col items-center">
+                              <span className="mt-1 h-3 w-3 rounded-full bg-cyan-300" />
+                              <span className="mt-2 h-full w-px bg-white/10" />
+                            </div>
+                            <div className="pb-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {event.time}
+                              </p>
+                              <p className="mt-1 font-semibold text-slate-100">
+                                {event.title}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {event.detail}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Quick Actions
+                      </h2>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {[
+                          ["Open CRM", "#crm"],
+                          ["Open Knowledge", "/dashboard/knowledge"],
+                          ["Run Audit", "#ai-audit"],
+                          ["View Calendar", "#meetings"],
+                          ["Configure Business Brain", "/dashboard/onboarding"],
+                        ].map(([label, href]) => (
+                          <Link
+                            key={label}
+                            href={href}
+                            className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-cyan-100"
+                          >
+                            {label}
+                            <ChevronRight size={16} />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {chiefOfStaffBriefing && (
+              <Card className="mb-6 overflow-hidden rounded-3xl">
+                <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-4xl">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-300 text-slate-950">
+                          <Brain size={23} />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
+                            AI Chief of Staff
+                          </p>
+                          <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
+                            Executive briefing center
+                          </h1>
+                        </div>
+                      </div>
+                      <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">
+                        {chiefOfStaffBriefing.executiveSummary}
+                      </p>
+                    </div>
+
+                    <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[430px]">
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Current status
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-white">
+                          {chiefOfStaffBriefing.status}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                          Delivery ready
+                        </p>
+                        <p className="mt-2 text-lg font-semibold text-white">
+                          {chiefOfStaffBriefing.notificationPlan.length} channel
+                          {chiefOfStaffBriefing.notificationPlan.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-0 xl:grid-cols-[1.1fr_0.9fr]">
+                  <div className="border-white/10 p-5 lg:p-6 xl:border-r">
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="font-semibold text-slate-100">
+                        Executive Cards
+                      </h2>
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-400">
+                        {chiefOfStaffBriefing.executiveCards.length} insights
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      {chiefOfStaffBriefing.executiveCards.map((card) => (
+                        <div
+                          key={card.id}
+                          className={`rounded-2xl border p-4 ${executiveCardClass(card.type)}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                {card.type}
+                              </p>
+                              <h3 className="mt-2 font-semibold text-slate-100">
+                                {card.title}
+                              </h3>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(card.priority)}`}
+                            >
+                              {card.priority}
+                            </span>
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-slate-300">
+                            {card.explanation}
+                          </p>
+                          <div className="mt-4 grid gap-3 text-xs leading-5 text-slate-500 sm:grid-cols-2">
+                            <p>
+                              Impact:{" "}
+                              <span className="text-slate-300">
+                                {card.businessImpact}
+                              </span>
+                            </p>
+                            <p>
+                              Value:{" "}
+                              <span className="text-slate-300">
+                                {card.estimatedValue}
+                              </span>
+                            </p>
+                            <p>
+                              Deadline:{" "}
+                              <span className="text-slate-300">
+                                {card.deadline}
+                              </span>
+                            </p>
+                            <p>
+                              Action:{" "}
+                              <span className="text-slate-300">
+                                {card.suggestedAction}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+
+                      {chiefOfStaffBriefing.executiveCards.length === 0 && (
+                        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                          No executive risks detected. JOHAI is monitoring the business.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Business Pulse
+                      </h2>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {[
+                          ["Overall Business Health", chiefOfStaffBriefing.businessPulse.overallBusinessHealth],
+                          ["Sales Momentum", chiefOfStaffBriefing.businessPulse.salesMomentum],
+                          ["Automation Health", chiefOfStaffBriefing.businessPulse.automationHealth],
+                          ["Customer Satisfaction", chiefOfStaffBriefing.businessPulse.customerSatisfaction],
+                          ["AI Confidence", chiefOfStaffBriefing.businessPulse.aiConfidence],
+                          ["Knowledge Growth", chiefOfStaffBriefing.businessPulse.knowledgeGrowth],
+                        ].map(([label, score]) => (
+                          <div
+                            key={label}
+                            className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-slate-200">
+                                {label}
+                              </p>
+                              <span className="text-sm font-semibold text-emerald-200">
+                                {score}%
+                              </span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className="h-full rounded-full bg-emerald-300"
+                                style={{ width: `${score}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5 lg:p-6">
+                    <div>
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Executive Timeline
+                      </h2>
+                      <div className="space-y-4">
+                        {chiefOfStaffBriefing.executiveTimeline.map((event) => (
+                          <div
+                            key={`${event.time}-${event.whatJohaiDid}`}
+                            className="flex gap-3"
+                          >
+                            <div className="flex flex-col items-center">
+                              <span className="mt-1 h-3 w-3 rounded-full bg-emerald-300" />
+                              <span className="mt-2 h-full w-px bg-white/10" />
+                            </div>
+                            <div className="pb-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {event.time}
+                              </p>
+                              <p className="mt-1 font-semibold text-slate-100">
+                                {event.whatJohaiDid}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                Why: {event.whyItDidIt}
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-slate-400">
+                                Next: {event.whatShouldHappenNext}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h2 className="mb-3 font-semibold text-slate-100">
+                        Notification Planner
+                      </h2>
+                      <div className="space-y-3">
+                        {chiefOfStaffBriefing.notificationPlan.map((plan) => (
+                          <div
+                            key={`${plan.channel}-${plan.reason}`}
+                            className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-semibold text-slate-100">
+                                {plan.channel}
+                              </p>
+                              <span
+                                className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(plan.urgency)}`}
+                              >
+                                {plan.urgency}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs leading-5 text-slate-500">
+                              {plan.reason}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {gettingStarted && (
               <Card className="mb-6 overflow-hidden rounded-3xl">
                 <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
@@ -948,7 +1501,7 @@ export default function DashboardClient({
               })}
             </section>
 
-            <Card className="mt-6 rounded-3xl p-5">
+            <Card id="ai-audit" className="mt-6 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -1357,7 +1910,7 @@ export default function DashboardClient({
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.6fr)]">
               <div className="space-y-6">
-                <Card className="rounded-3xl p-5">
+                <Card id="meetings" className="rounded-3xl p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">Pipeline</h2>

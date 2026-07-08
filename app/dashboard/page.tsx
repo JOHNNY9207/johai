@@ -20,6 +20,8 @@ import {
 } from "@/app/lib/supabase";
 import { createBusinessBrainService } from "@/app/lib/business-brain";
 import { createAuditEngine } from "@/app/lib/audit-engine";
+import { createMorningBriefService } from "@/app/lib/morning-brief";
+import { createExecutiveInsightEngine } from "@/app/lib/chief-of-staff";
 import DashboardClient from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -152,6 +154,32 @@ export default async function Dashboard() {
     leads: leadList,
     orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
     previousAudits: auditHistory,
+  });
+  const morningBrief = createMorningBriefService().build({
+    business: businessList[0] ?? null,
+    settings: settingsRecord,
+    businessBrainScore: businessBrainSnapshot.score,
+    businessBrainRecommendations:
+      businessBrainSnapshot.recommendations as BusinessBrainRecommendation[],
+    autonomousAudit,
+    auditHistory,
+    leads: leadList,
+    knowledgeItems: knowledgeItemList,
+    knowledgeFiles: knowledgeFileList,
+    orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
+  });
+  const chiefOfStaffBriefing = createExecutiveInsightEngine().build({
+    business: businessList[0] ?? null,
+    settings: settingsRecord,
+    businessBrainScore: businessBrainSnapshot.score,
+    businessBrainRecommendations:
+      businessBrainSnapshot.recommendations as BusinessBrainRecommendation[],
+    autonomousAudit,
+    auditHistory,
+    leads: leadList,
+    knowledgeItems: knowledgeItemList,
+    knowledgeFiles: knowledgeFileList,
+    orchestrationLogs: (orchestrationLogs ?? []) as OrchestrationLog[],
   });
   const companyProfile = asRecord(settingsRecord?.company_profile);
   const servicesConfig = asRecord(settingsRecord?.services_config);
@@ -387,6 +415,8 @@ export default async function Dashboard() {
       businessBrainTemplate={businessBrainSnapshot.template}
       autonomousAudit={autonomousAudit}
       auditHistory={auditHistory}
+      morningBrief={morningBrief}
+      chiefOfStaffBriefing={chiefOfStaffBriefing}
       gettingStarted={gettingStarted}
       loadError={Boolean(error)}
     />
