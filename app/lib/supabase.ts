@@ -76,6 +76,47 @@ export type Lead = {
   booked_meeting?: boolean;
 };
 
+export const knowledgeSections = [
+  "Documents",
+  "Website Import",
+  "FAQ",
+  "Products",
+  "Procedures",
+  "Policies",
+] as const;
+
+export type KnowledgeSection = (typeof knowledgeSections)[number];
+
+export const aiLearningStatuses = [
+  "Not learned",
+  "Ready to learn",
+  "Learning queued",
+  "Learned",
+] as const;
+
+export type AiLearningStatus = (typeof aiLearningStatuses)[number];
+
+export type KnowledgeItem = {
+  id: string;
+  business_id: string;
+  section: KnowledgeSection;
+  source_type: string;
+  title: string;
+  file_name?: string;
+  file_type?: string;
+  file_size?: number;
+  url?: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
+  ai_learning_status?: AiLearningStatus;
+  embedding_status?: string;
+  embedding_model?: string;
+  embedding_vector_id?: string;
+  knowledge_score?: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export const followUpStatuses = [
   "Waiting",
   "Reminder 1 sent",
