@@ -13,22 +13,23 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock3,
+  Gauge,
   FlaskConical,
-  KanbanSquare,
   LayoutDashboard,
   Mail,
   MessageSquareText,
   MoreHorizontal,
-  Database,
   Brain,
   Search,
   Settings,
   ShieldAlert,
   Sparkles,
   StickyNote,
+  Target,
   Trash2,
   UserRound,
   UsersRound,
+  Zap,
 } from "lucide-react";
 import {
   followUpStatuses,
@@ -267,14 +268,12 @@ const sidebarItems: Array<{
   meta: string;
   href: string;
 }> = [
-  { icon: LayoutDashboard, label: "Overview", meta: "Active", href: "#crm" },
-  { icon: UsersRound, label: "CRM", meta: "Leads", href: "#crm" },
-  { icon: KanbanSquare, label: "Pipeline", meta: "Booked", href: "#crm" },
-  { icon: Sparkles, label: "Onboarding", meta: "Setup", href: "/dashboard/onboarding" },
-  { icon: Database, label: "Knowledge", meta: "AI data", href: "/dashboard/knowledge" },
-  { icon: Bot, label: "AI Insights", meta: "Live", href: "#crm" },
-  { icon: Mail, label: "Email Activity", meta: "Health", href: "#crm" },
-  { icon: Building2, label: "Businesses", meta: "Accounts", href: "#businesses" },
+  { icon: LayoutDashboard, label: "Command Center", meta: "Live", href: "#command-center" },
+  { icon: UsersRound, label: "CRM", meta: "Customers", href: "#crm" },
+  { icon: Brain, label: "AI Brain", meta: "Knowledge", href: "#ai-brain" },
+  { icon: Zap, label: "Automations", meta: "Orchestrated", href: "#automations" },
+  { icon: Gauge, label: "Analytics", meta: "Pulse", href: "#analytics" },
+  { icon: Settings, label: "Settings", meta: "Control", href: "#settings-workspace" },
 ];
 
 const metricCards: Array<{
@@ -450,6 +449,108 @@ export default function DashboardClient({
       .reverse(),
     auditScores?.overallBusinessScore ?? 0,
   ].filter((score) => score > 0);
+  const liveAiStatuses = [
+    {
+      label: "Working",
+      active: orchestrationsToday.length > 0,
+      detail: `${orchestrationsToday.length} actions today`,
+    },
+    {
+      label: "Learning",
+      active: Boolean(gettingStarted?.dailyReport.documentsLearned),
+      detail: `${gettingStarted?.dailyReport.documentsLearned ?? 0} docs learned`,
+    },
+    {
+      label: "Monitoring",
+      active: true,
+      detail: `${leadList.length} customers watched`,
+    },
+    {
+      label: "Waiting",
+      active: !currentOrchestration,
+      detail: currentOrchestration ? "Conversation active" : "Ready for signal",
+    },
+    {
+      label: "Processing",
+      active: (businessBrainRecommendations.length + topAuditPriorities.length) > 0,
+      detail: `${businessBrainRecommendations.length + topAuditPriorities.length} insights`,
+    },
+    {
+      label: "Booking",
+      active: upcomingThisWeek > 0,
+      detail: `${upcomingThisWeek} this week`,
+    },
+    {
+      label: "Emailing",
+      active: leadList.some((lead) => lead.owner_email_sent || lead.prospect_email_sent),
+      detail: `${leadList.filter((lead) => lead.owner_email_sent || lead.prospect_email_sent).length} sent`,
+    },
+    {
+      label: "Analyzing",
+      active: Boolean(autonomousAudit),
+      detail: `${auditScores?.overallBusinessScore ?? 0}% audit`,
+    },
+  ];
+  const aiActivityFeed = [
+    ...orchestrationLogs.slice(0, 8).map((log) => ({
+      time: formatDateTime(log.created_at),
+      title: log.detected_intent,
+      detail: `AI executed ${log.required_actions?.length ?? 0} planned action${log.required_actions?.length === 1 ? "" : "s"}.`,
+      tone: log.result === "completed" ? "success" : "warning",
+    })),
+    ...upcomingMeetings.slice(0, 4).map((lead) => ({
+      time: formatDateTime(lead.next_meeting_at),
+      title: "Appointment booked",
+      detail: `${lead.first_name || lead.business_name} is on the calendar.`,
+      tone: "success",
+    })),
+    ...(gettingStarted?.timeline ?? []).map((event) => ({
+      time: event.time,
+      title: event.title.replace(".", ""),
+      detail: event.detail,
+      tone: event.status === "complete" ? "success" : "info",
+    })),
+  ].slice(0, 10);
+  const actionCenterItems = [
+    ...(chiefOfStaffBriefing?.executiveCards ?? []).map((card) => ({
+      title: card.title,
+      reason: card.explanation,
+      impact: card.businessImpact,
+      time: card.deadline,
+      priority: card.priority,
+    })),
+    ...(morningBrief?.recommendations ?? []).map((recommendation) => ({
+      title: recommendation.title,
+      reason: recommendation.estimatedImpact,
+      impact: recommendation.estimatedImpact,
+      time: recommendation.estimatedCompletionTime,
+      priority: recommendation.priority,
+    })),
+  ].slice(0, 8);
+  const criticalAlerts =
+    chiefOfStaffBriefing?.executiveCards.filter(
+      (card) => card.priority === "High" || card.type === "Risk"
+    ) ?? [];
+  const todaysPriorities = [
+    ...(morningBrief?.priorityInbox ?? []).map((item) => ({
+      title: item.title,
+      detail: item.why,
+      priority: item.priority,
+    })),
+    ...actionCenterItems.map((item) => ({
+      title: item.title,
+      detail: item.reason,
+      priority: item.priority,
+    })),
+  ].slice(0, 6);
+  const aiProductivity = [
+    ["Hours saved", Math.max(1, orchestrationsToday.length * 2 + leadList.filter((lead) => lead.owner_email_sent || lead.prospect_email_sent).length)],
+    ["Actions completed", successfulOrchestrations],
+    ["Tasks automated", orchestrationsToday.length],
+    ["Emails sent", leadList.filter((lead) => lead.owner_email_sent || lead.prospect_email_sent).length],
+    ["Appointments booked", bookedLeads.length],
+    ["Revenue influenced", statusCounts.Qualified + statusCounts.Booked],
+  ];
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -615,13 +716,15 @@ export default function DashboardClient({
                 <span className="text-xs text-slate-500">
                   {item.label === "CRM"
                     ? `${leadList.length} leads`
-                    : item.label === "Pipeline"
-                      ? `${bookedLeads.length} booked`
-                      : item.label === "Email Activity"
-                        ? `${emailErrors} issues`
-                        : item.label === "Businesses"
-                          ? `${businesses.length} accounts`
-                          : item.meta}
+                    : item.label === "Command Center"
+                      ? chiefOfStaffBriefing?.status ?? item.meta
+                      : item.label === "AI Brain"
+                        ? `${brainScore.overallScore}%`
+                        : item.label === "Automations"
+                          ? `${orchestrationsToday.length} today`
+                          : item.label === "Analytics"
+                            ? `${successRate}% success`
+                            : item.meta}
                 </span>
               </a>
             ))}
@@ -642,10 +745,10 @@ export default function DashboardClient({
             <div className="flex min-h-20 flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300">
-                  JOHAI CRM
+                  JOHAI v2
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                  Lead management command center
+                  AI company employee headquarters
                 </h1>
               </div>
               <div className="flex flex-1 flex-col gap-3 lg:max-w-2xl lg:flex-row lg:items-center">
@@ -716,6 +819,322 @@ export default function DashboardClient({
                 </div>
               </section>
             )}
+
+            <section id="command-center" className="mb-6 space-y-6">
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl lg:p-8">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="max-w-4xl">
+                    <div className="flex items-center gap-4">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white text-slate-950">
+                        <Sparkles size={26} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-300">
+                          JOHAI Command Center
+                        </p>
+                        <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">
+                          Your AI employee headquarters
+                        </h1>
+                      </div>
+                    </div>
+                    <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">
+                      JOHAI is monitoring customers, knowledge, automations,
+                      meetings, and executive priorities from one focused command
+                      workspace.
+                    </p>
+                  </div>
+
+                  <div className="grid min-w-full gap-3 sm:grid-cols-2 xl:min-w-[420px]">
+                    <div className="rounded-3xl border border-emerald-300/20 bg-emerald-300/10 p-5">
+                      <p className="text-xs uppercase tracking-wide text-emerald-200">
+                        Live AI Status
+                      </p>
+                      <p className="mt-3 text-2xl font-semibold text-white">
+                        {chiefOfStaffBriefing?.status ?? "Monitoring"}
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-5">
+                      <p className="text-xs uppercase tracking-wide text-cyan-200">
+                        Today&apos;s Focus
+                      </p>
+                      <p className="mt-3 text-sm leading-6 text-slate-100">
+                        {morningBrief?.aiFocusToday ?? "Monitor activity and surface important business signals."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {liveAiStatuses.map((status) => (
+                  <div
+                    key={status.label}
+                    className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold text-slate-100">{status.label}</p>
+                      <span
+                        className={`h-3 w-3 rounded-full ${
+                          status.active ? "bg-emerald-300" : "bg-slate-600"
+                        }`}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm text-slate-500">{status.detail}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
+                        AI Chief of Staff
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Executive command layer
+                      </h2>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-400">
+                      {chiefOfStaffBriefing?.executiveCards.length ?? 0} cards
+                    </span>
+                  </div>
+
+                  <p className="text-sm leading-6 text-slate-300">
+                    {chiefOfStaffBriefing?.executiveSummary ??
+                      "JOHAI is watching for opportunities, risks, and recommended actions."}
+                  </p>
+
+                  <div className="mt-6 grid gap-3 md:grid-cols-2">
+                    {(chiefOfStaffBriefing?.executiveCards ?? []).slice(0, 4).map((card) => (
+                      <div
+                        key={`command-${card.id}`}
+                        className={`rounded-2xl border p-4 ${executiveCardClass(card.type)}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-slate-100">
+                            {card.title}
+                          </p>
+                          <span
+                            className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(card.priority)}`}
+                          >
+                            {card.priority}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-xs leading-5 text-slate-500">
+                          {card.businessImpact}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Gauge className="text-cyan-300" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                        Business Pulse
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Operating health
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[
+                      ["Overall", chiefOfStaffBriefing?.businessPulse.overallBusinessHealth ?? 0],
+                      ["Sales Momentum", chiefOfStaffBriefing?.businessPulse.salesMomentum ?? 0],
+                      ["Automation", chiefOfStaffBriefing?.businessPulse.automationHealth ?? 0],
+                      ["AI Confidence", chiefOfStaffBriefing?.businessPulse.aiConfidence ?? 0],
+                    ].map(([label, score]) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-200">{label}</span>
+                          <span className="text-cyan-200">{score}%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full rounded-full bg-cyan-300" style={{ width: `${score}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center gap-3">
+                    <Clock3 className="text-cyan-300" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                        AI Activity Feed
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Live architecture timeline
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {aiActivityFeed.map((event) => (
+                      <div key={`${event.time}-${event.title}-${event.detail}`} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <span
+                            className={`mt-1 h-3 w-3 rounded-full ${
+                              event.tone === "success" ? "bg-emerald-300" : event.tone === "warning" ? "bg-amber-300" : "bg-cyan-300"
+                            }`}
+                          />
+                          <span className="mt-2 h-full w-px bg-white/10" />
+                        </div>
+                        <div className="pb-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {event.time}
+                          </p>
+                          <p className="mt-1 font-semibold text-slate-100">
+                            {event.title}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {event.detail}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5 lg:p-6">
+                  <div className="mb-5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Target className="text-amber-300" />
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-300">
+                          Action Center
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold">
+                          Recommendations to fix
+                        </h2>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-slate-400">
+                      {actionCenterItems.length} actions
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {actionCenterItems.map((item) => (
+                      <div key={`${item.title}-${item.time}`} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-semibold text-slate-100">{item.title}</p>
+                          <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${priorityClass(item.priority)}`}>
+                            {item.priority}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-xs leading-5 text-slate-500">
+                          Reason: {item.reason}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-slate-400">
+                          Impact: {item.impact}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-slate-400">
+                          Time: {item.time}
+                        </p>
+                        <div className="mt-4 flex gap-2">
+                          <button type="button" className="rounded-xl bg-cyan-300 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-200">
+                            Fix
+                          </button>
+                          <button type="button" className="rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10">
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-3">
+                <Card className="rounded-3xl p-5">
+                  <div className="mb-4 flex items-center gap-3">
+                    <ShieldAlert className="text-rose-300" />
+                    <h2 className="text-lg font-semibold">Critical Alerts</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {criticalAlerts.length === 0 && (
+                      <p className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                        No critical alerts right now.
+                      </p>
+                    )}
+                    {criticalAlerts.slice(0, 4).map((alert) => (
+                      <p key={alert.id} className="rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4 text-sm leading-6 text-rose-100">
+                        {alert.title}
+                      </p>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5">
+                  <div className="mb-4 flex items-center gap-3">
+                    <ClipboardCheck className="text-cyan-300" />
+                    <h2 className="text-lg font-semibold">Today&apos;s Priorities</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {todaysPriorities.map((priority) => (
+                      <div key={`${priority.title}-${priority.priority}`} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                        <p className="font-semibold text-slate-100">{priority.title}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">{priority.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="rounded-3xl p-5">
+                  <div className="mb-4 flex items-center gap-3">
+                    <CalendarDays className="text-cyan-300" />
+                    <h2 className="text-lg font-semibold">Upcoming Meetings</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {upcomingMeetings.slice(0, 4).length === 0 && (
+                      <p className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm text-slate-400">
+                        No upcoming meetings this week.
+                      </p>
+                    )}
+                    {upcomingMeetings.slice(0, 4).map((lead) => (
+                      <button
+                        key={`command-meeting-${lead.id}`}
+                        type="button"
+                        onClick={() => selectLead(lead)}
+                        className="w-full rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <p className="font-semibold">{lead.first_name || lead.business_name}</p>
+                        <p className="mt-1 text-xs text-slate-400">{formatDateTime(lead.next_meeting_at)}</p>
+                      </button>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+
+              <Card className="rounded-3xl p-5 lg:p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <Zap className="text-cyan-300" />
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                      AI Productivity
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold">
+                      Operational leverage
+                    </h2>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                  {aiProductivity.map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+                      <p className="mt-2 text-2xl font-semibold">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </section>
 
             {morningBrief && (
               <Card className="mb-6 overflow-hidden rounded-3xl">
@@ -1469,7 +1888,7 @@ export default function DashboardClient({
               </Card>
             )}
 
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section id="analytics" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {metricCards.map((metric) => {
                 const value =
                   metric.key === "total"
@@ -1501,7 +1920,7 @@ export default function DashboardClient({
               })}
             </section>
 
-            <Card id="ai-audit" className="mt-6 rounded-3xl p-5">
+            <Card id="automations" className="mt-6 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -1564,7 +1983,7 @@ export default function DashboardClient({
               </div>
             </Card>
 
-            <Card className="mt-6 rounded-3xl p-5">
+            <Card id="ai-brain" className="mt-6 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -1708,7 +2127,7 @@ export default function DashboardClient({
               </div>
             </Card>
 
-            <Card className="mt-6 rounded-3xl p-5">
+            <Card id="ai-audit" className="mt-6 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -2179,7 +2598,7 @@ export default function DashboardClient({
                   )}
                 </Card>
 
-                <Card id="businesses" className="rounded-3xl p-5">
+                <Card id="settings-workspace" className="rounded-3xl p-5">
                   <div className="mb-5 flex items-center gap-3">
                     <BriefcaseBusiness className="text-cyan-300" />
                     <div>
