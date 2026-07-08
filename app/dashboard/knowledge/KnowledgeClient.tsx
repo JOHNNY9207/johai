@@ -27,16 +27,21 @@ import {
 import {
   knowledgeProcessingStatuses,
   knowledgeSections,
+  type KnowledgeChunk,
   type KnowledgeFile,
   type KnowledgeItem,
+  type KnowledgeProcessingLog,
   type KnowledgeProcessingStatus,
   type KnowledgeSection,
 } from "@/app/lib/supabase";
 import type { LucideIcon } from "lucide-react";
+import type { MemorySearchResult } from "@/app/lib/semantic-memory";
 
 type KnowledgeClientProps = {
   initialItems: KnowledgeItem[];
   initialFiles: KnowledgeFile[];
+  initialChunks: KnowledgeChunk[];
+  initialLogs: KnowledgeProcessingLog[];
 };
 
 type UploadQueueItem = {
@@ -121,9 +126,13 @@ function downloadJson(filename: string, data: unknown) {
 export default function KnowledgeClient({
   initialItems,
   initialFiles,
+  initialChunks,
+  initialLogs,
 }: KnowledgeClientProps) {
   const [items, setItems] = useState(initialItems);
   const [files, setFiles] = useState(initialFiles);
+  const [chunks, setChunks] = useState(initialChunks);
+  const [logs, setLogs] = useState(initialLogs);
   const [activeSection, setActiveSection] =
     useState<KnowledgeSection>("Documents");
   const [search, setSearch] = useState("");
@@ -136,6 +145,9 @@ export default function KnowledgeClient({
   const [manualContent, setManualContent] = useState("");
   const [message, setMessage] = useState("");
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const [memorySearch, setMemorySearch] = useState("");
+  const [memoryResults, setMemoryResults] = useState<MemorySearchResult[]>([]);
+  const [memoryMessage, setMemoryMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const filteredItems = useMemo(() => {
@@ -209,6 +221,96 @@ export default function KnowledgeClient({
     92,
     Math.round(((items.length + files.length) / 24) * 100)
   );
+  const totalChunks = chunks.length;
+  const averageChunkSize =
+    totalChunks > 0
+      ? Math.round(
+          chunks.reduce((sum, chunk) => sum + chunk.token_count, 0) /
+            totalChunks
+        )
+      : 0;
+  const estimatedEmbeddingCost =
+    totalChunks > 0 ? `$${((totalChunks * averageChunkSize * 0.00002) / 1000).toFixed(4)}` : "$0.0000";
+  const readyForEmbedding = chunks.filter((chunk) => chunk.ready_for_embedding).length;
+  const embeddedChunks = chunks.filter(
+    (chunk) => chunk.embedding_status === "embedded"
+  ).length;
+  const searchIndexedChunks = chunks.filter((chunk) => chunk.content).length;
+  const memoryHealth =
+    totalChunks > 0 ? Math.round((readyForEmbedding / totalChunks) * 100) : 0;
+  const estimatedVectorStorage =
+    totalChunks > 0
+      ? `${((totalChunks * 1536 * 4) / (1024 * 1024)).toFixed(2)} MB`
+      : "0 MB";
+
+  function runMemorySearch() {
+    if (!memorySearch.trim()) {
+      setMemoryMessage("Search query is required.");
+      return;
+    }
+
+    setMemoryMessage("");
+
+    startTransition(async () => {
+      const res = await fetch(
+        `/api/knowledge/search?q=${encodeURIComponent(memorySearch)}`
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMemoryMessage(data.error ?? "Memory search failed.");
+        return;
+      }
+
+      setMemoryResults(data.results ?? []);
+      setMemoryMessage(
+        `${data.results?.length ?? 0} memory result${
+          data.results?.length === 1 ? "" : "s"
+        } found.`
+      );
+    });
+  }
+
+  async function refreshProcessingData() {
+    const [filesRes, chunksRes] = await Promise.all([
+      fetch("/api/knowledge/files"),
+      fetch("/api/knowledge/process", { method: "GET" }).catch(() => null),
+    ]);
+
+    if (filesRes.ok) {
+      const data = await filesRes.json();
+      setFiles(data.files ?? []);
+    }
+
+    if (chunksRes?.ok) {
+      const data = await chunksRes.json();
+      setChunks(data.chunks ?? []);
+      setLogs(data.logs ?? []);
+    }
+  }
+
+  function runProcessing(fileId?: string) {
+    setMessage("");
+
+    startTransition(async () => {
+      const res = await fetch("/api/knowledge/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(fileId ? { fileId } : {}),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error ?? "Processing could not run.");
+        return;
+      }
+
+      setMessage(`Processed ${data.processed ?? 0} document(s).`);
+      await refreshProcessingData();
+    });
+  }
 
   async function saveKnowledgeItem(payload: {
     section: KnowledgeSection;
@@ -520,6 +622,122 @@ export default function KnowledgeClient({
             <PipelineCard label="Searching" value={fileSearch ? "Active" : "Idle"} />
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl">
+              <div className="grid gap-4 sm:grid-cols-4">
+                <Metric label="Waiting" value={queuedCount} />
+                <Metric label="Processed" value={readyCount} />
+                <Metric label="Chunks" value={totalChunks} />
+                <Metric label="Avg chunk" value={`${averageChunkSize} tokens`} />
+              </div>
+              <p className="mt-4 text-sm text-slate-400">
+                Estimated embedding cost placeholder:{" "}
+                <span className="font-semibold text-cyan-100">
+                  {estimatedEmbeddingCost}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={isPending || files.length === 0}
+              onClick={() => runProcessing()}
+              className="inline-flex min-h-28 items-center justify-center rounded-3xl bg-cyan-300 px-5 py-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Process queue
+            </button>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl md:p-6">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.26em] text-cyan-300">
+                  AI Memory
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Semantic memory readiness
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  PostgreSQL full-text search is active now. The same interfaces
+                  are ready for OpenAI embeddings, VectorStore, SemanticSearch,
+                  MemoryRetriever, and KnowledgeRetriever later.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px]">
+                <Metric label="Processed docs" value={readyCount} />
+                <Metric label="Chunks" value={totalChunks} />
+                <Metric label="Ready for embedding" value={readyForEmbedding} />
+                <Metric label="Embedded" value={embeddedChunks} />
+                <Metric label="Search index" value={`${searchIndexedChunks} chunks`} />
+                <Metric label="Memory health" value={`${memoryHealth}%`} />
+                <Metric label="Avg chunk" value={`${averageChunkSize} tokens`} />
+                <Metric label="Vector storage" value={estimatedVectorStorage} />
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+              <label className="relative">
+                <Search
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                  size={18}
+                />
+                <input
+                  value={memorySearch}
+                  onChange={(event) => setMemorySearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") runMemorySearch();
+                  }}
+                  placeholder="Search inside processed knowledge chunks"
+                  className={`${inputClass()} pl-11`}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={runMemorySearch}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Search size={17} />
+                Search memory
+              </button>
+            </div>
+
+            {memoryMessage && (
+              <p className="mt-4 rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm text-slate-300">
+                {memoryMessage}
+              </p>
+            )}
+
+            {memoryResults.length > 0 && (
+              <div className="mt-5 grid gap-3">
+                {memoryResults.map((result) => (
+                  <div
+                    key={result.chunk_id}
+                    className="rounded-3xl border border-white/10 bg-slate-950/35 p-5"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="font-semibold">{result.document}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Business: {result.business_name} - Source:{" "}
+                          {result.source || "Knowledge chunk"}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                        Score {Number(result.score ?? 0).toFixed(3)}
+                      </span>
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-slate-300">
+                      {result.chunk_preview}
+                    </p>
+                    <p className="mt-4 text-xs text-slate-500">
+                      Created {formatDate(result.created_at)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-3xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur-xl md:p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
@@ -803,6 +1021,14 @@ export default function KnowledgeClient({
                             <div className="mt-4 flex flex-wrap gap-2">
                               <button
                                 type="button"
+                                onClick={() => runProcessing(file.id)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/15"
+                              >
+                                <Sparkles size={14} />
+                                Process
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => renameFile(file)}
                                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.08]"
                               >
@@ -869,6 +1095,38 @@ export default function KnowledgeClient({
                           {item.content}
                         </p>
                       )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.055] backdrop-blur-xl">
+                <div className="border-b border-white/10 p-5">
+                  <h3 className="text-lg font-semibold">Processing logs</h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Parser, cleaning, chunking and failure events.
+                  </p>
+                </div>
+                <div className="max-h-[360px] space-y-3 overflow-y-auto p-5">
+                  {logs.length === 0 && (
+                    <p className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm text-slate-400">
+                      No processing logs yet.
+                    </p>
+                  )}
+                  {logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold">{log.message}</p>
+                        <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs uppercase text-slate-300">
+                          {log.level}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {formatDate(log.created_at)}
+                      </p>
                     </div>
                   ))}
                 </div>

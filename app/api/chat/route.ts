@@ -1,5 +1,10 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { createAiOrchestrator } from "@/app/lib/ai-orchestrator";
+import {
+  createSupabaseServerClient,
+  DEFAULT_BUSINESS_ID,
+} from "@/app/lib/supabase";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -181,16 +186,39 @@ Always return JSON only.
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw);
+    const reply = parsed.reply || "Sorry, I couldn't generate a response.";
+    const lead = parsed.lead || {
+      first_name: "",
+      business_name: "",
+      business_type: "",
+      email: "",
+      biggest_problem: "",
+    };
+
+    try {
+      const supabase = createSupabaseServerClient();
+      const orchestrator = createAiOrchestrator(supabase);
+
+      await orchestrator.orchestrate({
+        businessId: DEFAULT_BUSINESS_ID,
+        conversation: [
+          ...messages,
+          {
+            role: "assistant",
+            content: reply,
+          },
+        ],
+        assistantReply: reply,
+        lead,
+        channel: "web_chat",
+      });
+    } catch (orchestrationError) {
+      console.error("JOHAI ORCHESTRATOR ERROR:", orchestrationError);
+    }
 
     return NextResponse.json({
-      reply: parsed.reply || "Sorry, I couldn't generate a response.",
-      lead: parsed.lead || {
-        first_name: "",
-        business_name: "",
-        business_type: "",
-        email: "",
-        biggest_problem: "",
-      },
+      reply,
+      lead,
     });
   } catch (error) {
     console.error("JOHAI ERROR:", error);

@@ -46,6 +46,100 @@ export type BusinessSettings = {
   updated_at?: string;
 };
 
+export type BusinessBrain = {
+  id: string;
+  business_id: string;
+  industry?: string;
+  business_profile?: Record<string, unknown>;
+  products?: unknown[];
+  services?: unknown[];
+  pricing?: Record<string, unknown>;
+  opening_hours?: Record<string, unknown>;
+  languages?: string[];
+  tone_of_voice?: string;
+  target_customers?: string[];
+  policies?: Record<string, unknown>;
+  frequently_asked_questions?: unknown[];
+  booking_rules?: Record<string, unknown>;
+  lead_qualification_rules?: Record<string, unknown>;
+  escalation_rules?: Record<string, unknown>;
+  communication_rules?: Record<string, unknown>;
+  vocabulary?: string[];
+  industry_template?: string;
+  profile_score?: number;
+  recommendations?: unknown[];
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BusinessBrainScore = {
+  businessInformationCompleteness: number;
+  knowledgeCompleteness: number;
+  servicesDocumented: number;
+  policiesDocumented: number;
+  faqDocumented: number;
+  websiteImported: number;
+  aiReadiness: number;
+  overallScore: number;
+};
+
+export type BusinessBrainRecommendation = {
+  title: string;
+  detail: string;
+  priority: "low" | "medium" | "high";
+  category: string;
+};
+
+export type AuditModuleStatus = "excellent" | "good" | "needs_attention" | "critical" | "not_connected";
+
+export type AuditPriority = "low" | "medium" | "high" | "critical";
+
+export type AuditRecommendation = {
+  title: string;
+  detail: string;
+  priority: AuditPriority;
+  module: string;
+};
+
+export type AuditResult = {
+  module: string;
+  score: number;
+  status: AuditModuleStatus;
+  issues: string[];
+  strengths: string[];
+  recommendations: AuditRecommendation[];
+  priority: AuditPriority;
+};
+
+export type AuditScore = {
+  overallBusinessScore: number;
+  aiReadinessScore: number;
+  automationScore: number;
+  knowledgeScore: number;
+  marketingScore: number;
+  crmScore: number;
+};
+
+export type AuditReport = {
+  id?: string;
+  business_id: string;
+  lead_id?: string | null;
+  status: string;
+  audit_type?: string;
+  summary?: string;
+  scores?: AuditScore;
+  module_results?: AuditResult[];
+  recommendations?: AuditRecommendation[];
+  executive_summary?: string;
+  detailed_report?: Record<string, unknown>;
+  action_plan?: unknown[];
+  implementation_roadmap?: unknown[];
+  report_status?: string;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string | null;
+};
+
 export type Lead = {
   id: string;
   business_id?: string;
@@ -159,7 +253,75 @@ export type KnowledgeChunk = {
   chunk_index: number;
   content: string;
   token_count: number;
+  processing_status?: string;
+  ready_for_embedding?: boolean;
   embedding_status: string;
+  embedding_provider?: string;
+  vector_store_status?: string;
+  created_at?: string;
+};
+
+export type KnowledgeProcessingLog = {
+  id: string;
+  business_id: string;
+  knowledge_file_id: string;
+  level: "info" | "warning" | "error";
+  message: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+};
+
+export const orchestrationIntents = [
+  "General Question",
+  "Pricing Request",
+  "Book Appointment",
+  "Need Human",
+  "Complaint",
+  "Sales Opportunity",
+  "Existing Customer",
+  "Support Request",
+  "Quote Request",
+  "Document Upload",
+  "Unknown",
+] as const;
+
+export type OrchestrationIntent = (typeof orchestrationIntents)[number];
+
+export const orchestrationActions = [
+  "CreateLead",
+  "UpdateLead",
+  "SearchKnowledge",
+  "SearchSemanticMemory",
+  "GenerateAudit",
+  "ScheduleCalendly",
+  "SendEmail",
+  "CreateTask",
+  "NotifyOwner",
+  "AssignFollowUp",
+  "StopAutomation",
+  "EscalateHuman",
+  "SaveConversation",
+] as const;
+
+export type OrchestrationAction = (typeof orchestrationActions)[number];
+
+export type OrchestrationLog = {
+  id: string;
+  business_id: string;
+  lead_id?: string | null;
+  conversation: unknown;
+  detected_intent: OrchestrationIntent;
+  confidence: number;
+  required_actions: OrchestrationAction[];
+  executed_actions: unknown;
+  priority: string;
+  business_context?: Record<string, unknown>;
+  knowledge_context?: Record<string, unknown>;
+  crm_context?: Record<string, unknown>;
+  execution_time_ms: number;
+  result: string;
+  errors?: unknown;
+  channel: string;
   created_at?: string;
 };
 

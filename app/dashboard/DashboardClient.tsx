@@ -7,6 +7,7 @@ import {
   Bot,
   BriefcaseBusiness,
   Building2,
+  ClipboardCheck,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -19,6 +20,7 @@ import {
   MessageSquareText,
   MoreHorizontal,
   Database,
+  Brain,
   Search,
   Settings,
   ShieldAlert,
@@ -32,17 +34,32 @@ import {
   followUpStatuses,
   leadStatuses,
   type Business,
+  type AuditReport,
+  type AuditResult,
+  type BusinessBrainRecommendation,
+  type BusinessBrainScore,
   type Lead,
   type LeadStatus,
   type OnboardingStatus,
+  type OrchestrationAction,
+  type OrchestrationLog,
 } from "@/app/lib/supabase";
+import type { IndustryTemplate } from "@/app/lib/business-brain";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import type { LucideIcon } from "lucide-react";
 
 type DashboardClientProps = {
   leads: Lead[];
   businesses: Business[];
+  orchestrationLogs?: OrchestrationLog[];
   onboardingStatus?: OnboardingStatus;
+  businessBrainScore?: BusinessBrainScore;
+  businessBrainRecommendations?: BusinessBrainRecommendation[];
+  businessBrainIndustry?: string;
+  businessBrainVocabulary?: string[];
+  businessBrainTemplate?: IndustryTemplate;
+  autonomousAudit?: AuditReport;
+  auditHistory?: AuditReport[];
   loadError?: boolean;
 };
 
@@ -167,7 +184,15 @@ const metricCards: Array<{
 export default function DashboardClient({
   leads,
   businesses,
+  orchestrationLogs = [],
   onboardingStatus = "not_started",
+  businessBrainScore,
+  businessBrainRecommendations = [],
+  businessBrainIndustry = "General Business",
+  businessBrainVocabulary = [],
+  businessBrainTemplate,
+  autonomousAudit,
+  auditHistory = [],
   loadError,
 }: DashboardClientProps) {
   const [leadList, setLeadList] = useState(leads);
@@ -267,6 +292,53 @@ export default function DashboardClient({
   const emailErrors = leadList.filter((lead) => lead.email_error).length;
   const maxStatusCount = Math.max(...leadStatuses.map((status) => statusCounts[status]), 1);
   const onboardingComplete = onboardingStatus === "completed";
+  const todayKey = new Date().toDateString();
+  const orchestrationsToday = orchestrationLogs.filter(
+    (log) => new Date(log.created_at ?? "").toDateString() === todayKey
+  );
+  const countAction = (action: OrchestrationAction) =>
+    orchestrationsToday.filter((log) => log.required_actions?.includes(action)).length;
+  const successfulOrchestrations = orchestrationsToday.filter(
+    (log) => log.result === "completed"
+  ).length;
+  const successRate =
+    orchestrationsToday.length > 0
+      ? Math.round((successfulOrchestrations / orchestrationsToday.length) * 100)
+      : 100;
+  const averageResponseTime =
+    orchestrationsToday.length > 0
+      ? Math.round(
+          orchestrationsToday.reduce(
+            (sum, log) => sum + (log.execution_time_ms ?? 0),
+            0
+          ) / orchestrationsToday.length
+        )
+      : 0;
+  const currentOrchestration = orchestrationLogs[0];
+  const brainScore = businessBrainScore ?? {
+    businessInformationCompleteness: 0,
+    knowledgeCompleteness: 0,
+    servicesDocumented: 0,
+    policiesDocumented: 0,
+    faqDocumented: 0,
+    websiteImported: 0,
+    aiReadiness: 0,
+    overallScore: 0,
+  };
+  const auditScores = autonomousAudit?.scores;
+  const moduleResults = autonomousAudit?.module_results ?? [];
+  const criticalIssues = moduleResults.flatMap((moduleResult) =>
+    moduleResult.priority === "critical" ? moduleResult.issues : []
+  );
+  const topAuditPriorities =
+    autonomousAudit?.recommendations?.slice(0, 5) ?? [];
+  const progressHistory = [
+    ...auditHistory
+      .slice(0, 5)
+      .map((audit) => audit.scores?.overallBusinessScore ?? 0)
+      .reverse(),
+    auditScores?.overallBusinessScore ?? 0,
+  ].filter((score) => score > 0);
 
   function selectLead(lead: Lead) {
     setSelectedLeadId(lead.id);
@@ -565,6 +637,413 @@ export default function DashboardClient({
                 );
               })}
             </section>
+
+            <Card className="mt-6 rounded-3xl p-5">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-200">
+                      <Bot size={21} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                        AI Employee
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Orchestration command center
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">
+                    Current flow: Prospect asks a question, intent detection runs,
+                    knowledge and semantic memory can be searched, business rules
+                    create an action plan, actions execute in isolation, then CRM
+                    and follow-up systems continue.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm">
+                  <p className="text-slate-500">Current status</p>
+                  <p className="mt-1 font-semibold text-emerald-100">
+                    {currentOrchestration ? "Active" : "Waiting for conversation"}
+                  </p>
+                  <p className="mt-3 text-slate-500">Current conversation</p>
+                  <p className="mt-1 font-semibold text-slate-200">
+                    {currentOrchestration?.detected_intent ?? "No intent yet"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {[
+                  ["Actions today", orchestrationsToday.length],
+                  ["Knowledge searches", countAction("SearchKnowledge")],
+                  ["Appointments booked", countAction("ScheduleCalendly")],
+                  ["Emails sent", countAction("SendEmail")],
+                  ["Audits generated", countAction("GenerateAudit")],
+                  ["Follow-ups started", countAction("AssignFollowUp")],
+                  ["Escalations", countAction("EscalateHuman")],
+                  ["Success rate", `${successRate}%`],
+                  ["Avg response", `${averageResponseTime} ms`],
+                  ["Semantic searches", countAction("SearchSemanticMemory")],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="mt-6 rounded-3xl p-5">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300/10 text-emerald-200">
+                      <Brain size={21} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
+                        Business Brain
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        {businessBrainIndustry} operating intelligence
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">
+                    Each business gets its own AI identity: services, policies,
+                    vocabulary, booking rules, escalation rules, target customers,
+                    and communication style. This layer is ready for Semantic
+                    Search, the Orchestrator, Audit Engine, Voice AI, WhatsApp,
+                    and SMS.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm">
+                  <p className="text-slate-500">Brain health</p>
+                  <p className="mt-1 text-4xl font-semibold text-emerald-100">
+                    {brainScore.overallScore}%
+                  </p>
+                  <p className="mt-3 text-slate-500">AI confidence</p>
+                  <p className="mt-1 font-semibold text-slate-200">
+                    {brainScore.aiReadiness}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {[
+                  ["Business completeness", `${brainScore.businessInformationCompleteness}%`],
+                  ["Knowledge coverage", `${brainScore.knowledgeCompleteness}%`],
+                  ["Products documented", `${brainScore.servicesDocumented}%`],
+                  ["FAQs", `${brainScore.faqDocumented}%`],
+                  ["Policies", `${brainScore.policiesDocumented}%`],
+                  ["Procedures", `${brainScore.policiesDocumented}%`],
+                  ["Website imported", `${brainScore.websiteImported}%`],
+                  ["AI readiness", `${brainScore.aiReadiness}%`],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Recommendation cards
+                  </h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {businessBrainRecommendations.length === 0 && (
+                      <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
+                        Business Brain has enough core context for this phase.
+                      </div>
+                    )}
+                    {businessBrainRecommendations.slice(0, 6).map((recommendation) => (
+                      <div
+                        key={recommendation.title}
+                        className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-semibold text-white">
+                            {recommendation.title}
+                          </p>
+                          <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs uppercase text-slate-400">
+                            {recommendation.priority}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-slate-400">
+                          {recommendation.detail}
+                        </p>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+                          {recommendation.category}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                  <h3 className="font-semibold">Industry template</h3>
+                  <p className="mt-2 text-sm text-slate-400">
+                    {businessBrainTemplate?.industry ?? businessBrainIndustry}
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Business vocabulary
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {businessBrainVocabulary.slice(0, 12).map((word) => (
+                          <span
+                            key={word}
+                            className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-100"
+                          >
+                            {word}
+                          </span>
+                        ))}
+                        {businessBrainVocabulary.length === 0 && (
+                          <span className="text-sm text-slate-500">
+                            No vocabulary yet
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">
+                        Suggested automations
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        {(businessBrainTemplate?.suggestedAutomations ?? [])
+                          .slice(0, 4)
+                          .map((automation) => (
+                            <p
+                              key={automation}
+                              className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-slate-300"
+                            >
+                              {automation}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="mt-6 rounded-3xl p-5">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-300/10 text-amber-200">
+                      <ClipboardCheck size={21} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-300">
+                        AI Audit Center
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold">
+                        Autonomous business audit engine
+                      </h2>
+                    </div>
+                  </div>
+                  <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">
+                    Modular audits analyze the business profile, knowledge,
+                    website placeholders, SEO placeholders, Google Business,
+                    social, automation, CRM, AI readiness, and communications.
+                    Report architecture is ready for PDF export, executive
+                    summary, detailed report, action plan, and roadmap.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                  <p className="text-sm text-slate-500">Overall score</p>
+                  <p className="mt-1 text-4xl font-semibold text-amber-100">
+                    {auditScores?.overallBusinessScore ?? 0}%
+                  </p>
+                  <p className="mt-3 text-sm text-slate-500">Audit status</p>
+                  <p className="mt-1 font-semibold text-slate-200">
+                    {autonomousAudit?.report_status ?? "ready"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {[
+                  ["Overall", `${auditScores?.overallBusinessScore ?? 0}%`],
+                  ["AI readiness", `${auditScores?.aiReadinessScore ?? 0}%`],
+                  ["Automation", `${auditScores?.automationScore ?? 0}%`],
+                  ["Knowledge", `${auditScores?.knowledgeScore ?? 0}%`],
+                  ["Marketing", `${auditScores?.marketingScore ?? 0}%`],
+                  ["CRM", `${auditScores?.crmScore ?? 0}%`],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      {label}
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-white">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Module scores
+                  </h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {moduleResults.map((moduleResult: AuditResult) => (
+                      <div
+                        key={moduleResult.module}
+                        className="rounded-2xl border border-white/10 bg-slate-950/35 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-white">
+                              {moduleResult.module}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                              {moduleResult.status}
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-100">
+                            {moduleResult.score}%
+                          </span>
+                        </div>
+                        <div className="mt-4 h-2 rounded-full bg-white/10">
+                          <div
+                            className="h-2 rounded-full bg-amber-300"
+                            style={{ width: `${moduleResult.score}%` }}
+                          />
+                        </div>
+                        {moduleResult.issues[0] && (
+                          <p className="mt-3 text-sm leading-6 text-slate-400">
+                            {moduleResult.issues[0]}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <h3 className="font-semibold">Top priorities</h3>
+                    <div className="mt-4 space-y-3">
+                      {topAuditPriorities.length === 0 && (
+                        <p className="text-sm text-slate-400">
+                          No audit priorities yet.
+                        </p>
+                      )}
+                      {topAuditPriorities.map((recommendation) => (
+                        <div
+                          key={`${recommendation.module}-${recommendation.title}`}
+                          className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-semibold">
+                              {recommendation.title}
+                            </p>
+                            <span className="text-xs uppercase text-amber-200">
+                              {recommendation.priority}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-slate-400">
+                            {recommendation.detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <h3 className="font-semibold">Critical issues</h3>
+                    <div className="mt-4 space-y-2">
+                      {criticalIssues.length === 0 && (
+                        <p className="text-sm text-slate-400">
+                          No critical issues detected in this audit.
+                        </p>
+                      )}
+                      {criticalIssues.slice(0, 5).map((issue) => (
+                        <p
+                          key={issue}
+                          className="rounded-xl border border-red-300/20 bg-red-400/10 px-3 py-2 text-sm text-red-100"
+                        >
+                          {issue}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <h3 className="font-semibold">Progress over time</h3>
+                    <div className="mt-4 flex h-24 items-end gap-2">
+                      {progressHistory.length === 0 && (
+                        <p className="text-sm text-slate-400">
+                          First audit snapshot ready.
+                        </p>
+                      )}
+                      {progressHistory.map((score, index) => (
+                        <div
+                          key={`${score}-${index}`}
+                          className="flex flex-1 flex-col items-center gap-2"
+                        >
+                          <div
+                            className="w-full rounded-t-lg bg-amber-300/70"
+                            style={{ height: `${Math.max(8, score)}%` }}
+                          />
+                          <span className="text-[10px] text-slate-500">
+                            {score}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+                    <h3 className="font-semibold">Audit history</h3>
+                    <div className="mt-4 space-y-2">
+                      {auditHistory.length === 0 && (
+                        <p className="text-sm text-slate-400">
+                          No saved audit reports yet.
+                        </p>
+                      )}
+                      {auditHistory.slice(0, 4).map((audit) => (
+                        <div
+                          key={audit.id}
+                          className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2"
+                        >
+                          <p className="text-sm font-semibold">
+                            {audit.audit_type ?? "AI audit"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDate(audit.created_at)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.6fr)]">
               <div className="space-y-6">

@@ -9,6 +9,8 @@ import {
   DEFAULT_BUSINESS_ID,
   type KnowledgeFile,
   type KnowledgeItem,
+  type KnowledgeChunk,
+  type KnowledgeProcessingLog,
 } from "@/app/lib/supabase";
 import KnowledgeClient from "./KnowledgeClient";
 
@@ -46,11 +48,24 @@ export default async function KnowledgePage() {
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: false });
+  const { data: chunks } = await supabase
+    .from("knowledge_chunks")
+    .select("*")
+    .eq("business_id", DEFAULT_BUSINESS_ID)
+    .order("chunk_index", { ascending: true });
+  const { data: logs } = await supabase
+    .from("knowledge_processing_logs")
+    .select("*")
+    .eq("business_id", DEFAULT_BUSINESS_ID)
+    .order("created_at", { ascending: false })
+    .limit(40);
 
   return (
     <KnowledgeClient
       initialItems={(data ?? []) as KnowledgeItem[]}
       initialFiles={(files ?? []) as KnowledgeFile[]}
+      initialChunks={(chunks ?? []) as KnowledgeChunk[]}
+      initialLogs={(logs ?? []) as KnowledgeProcessingLog[]}
     />
   );
 }
