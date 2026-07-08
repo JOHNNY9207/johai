@@ -32,7 +32,9 @@
     ".next-build/types/**/*.ts",
     ".next-build/dev/types/**/*.ts",
     ".next-build-active/types/**/*.ts",
-    ".next-build-active/dev/types/**/*.ts"
+    ".next-build-active/dev/types/**/*.ts",
+    ".next-build-stable/types/**/*.ts",
+    ".next-build-stable/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

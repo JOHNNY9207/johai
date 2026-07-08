@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  distDir: ".next-build-active",
+  distDir: ".next-build-stable",
 };
 
 export default nextConfig;

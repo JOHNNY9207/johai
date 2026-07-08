@@ -262,6 +262,21 @@ function Card({
   );
 }
 
+function EmptyState({
+  title,
+  detail,
+}: {
+  title: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 text-sm leading-6">
+      <p className="font-semibold text-slate-200">{title}</p>
+      <p className="mt-1 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
 const sidebarItems: Array<{
   icon: LucideIcon;
   label: string;
@@ -288,6 +303,36 @@ const metricCards: Array<{
   { icon: Mail, label: "Email issues", key: "email", meta: "Needs attention" },
 ];
 
+const emptyMorningBrief: MorningBrief = {
+  greeting: "Welcome back.",
+  currentDate: "Today",
+  businessName: "your business",
+  aiEmployeeStatus: "Monitoring",
+  happenedSinceLastVisit: [],
+  priorityInbox: [],
+  recommendations: [],
+  businessHealth: [],
+  opportunities: [],
+  successTimeline: [],
+  aiFocusToday: "JOHAI is monitoring the business and waiting for the next signal.",
+};
+
+const emptyChiefOfStaffBriefing: ChiefOfStaffBriefing = {
+  status: "Monitoring",
+  executiveSummary: "JOHAI is monitoring the business for risks and opportunities.",
+  executiveCards: [],
+  executiveTimeline: [],
+  businessPulse: {
+    overallBusinessHealth: 0,
+    salesMomentum: 0,
+    automationHealth: 0,
+    customerSatisfaction: 0,
+    aiConfidence: 0,
+    knowledgeGrowth: 0,
+  },
+  notificationPlan: [],
+};
+
 export default function DashboardClient({
   leads,
   businesses,
@@ -300,8 +345,8 @@ export default function DashboardClient({
   businessBrainTemplate,
   autonomousAudit,
   auditHistory = [],
-  morningBrief,
-  chiefOfStaffBriefing,
+  morningBrief = emptyMorningBrief,
+  chiefOfStaffBriefing = emptyChiefOfStaffBriefing,
   gettingStarted,
   loadError,
 }: DashboardClientProps) {
@@ -786,9 +831,32 @@ export default function DashboardClient({
                 </div>
               </div>
             </div>
+            <nav className="flex gap-2 overflow-x-auto border-t border-white/10 px-4 py-3 xl:hidden">
+              {sidebarItems.map((item) => (
+                <a
+                  key={`mobile-${item.label}`}
+                  href={item.href}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-cyan-100"
+                >
+                  <item.icon size={15} />
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            {isPending && (
+              <div className="border-t border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-semibold text-cyan-100 lg:px-8">
+                Updating dashboard data...
+              </div>
+            )}
           </header>
 
           <div className="px-4 py-6 lg:px-8">
+            {loadError && (
+              <div className="mb-6 rounded-3xl border border-red-300/25 bg-red-400/10 p-5 text-sm leading-6 text-red-100">
+                Some CRM data could not load. The Command Center is still available with the data JOHAI could read.
+              </div>
+            )}
+
             {!onboardingComplete && (
               <section className="mb-6 rounded-3xl border border-cyan-300/25 bg-cyan-300/10 p-5 backdrop-blur-xl">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -820,7 +888,7 @@ export default function DashboardClient({
               </section>
             )}
 
-            <section id="command-center" className="mb-6 space-y-6">
+            <section id="command-center" className="mb-6 scroll-mt-36 space-y-6">
               <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl lg:p-8">
                 <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                   <div className="max-w-4xl">
@@ -926,6 +994,12 @@ export default function DashboardClient({
                         </p>
                       </div>
                     ))}
+                    {(chiefOfStaffBriefing?.executiveCards.length ?? 0) === 0 && (
+                      <EmptyState
+                        title="No executive cards yet"
+                        detail="JOHAI has not detected any urgent risks or opportunities from the current data."
+                      />
+                    )}
                   </div>
                 </Card>
 
@@ -976,6 +1050,12 @@ export default function DashboardClient({
                     </div>
                   </div>
                   <div className="space-y-4">
+                    {aiActivityFeed.length === 0 && (
+                      <EmptyState
+                        title="No AI activity yet"
+                        detail="Live activity will appear here when leads, emails, bookings, audits, or knowledge updates happen."
+                      />
+                    )}
                     {aiActivityFeed.map((event) => (
                       <div key={`${event.time}-${event.title}-${event.detail}`} className="flex gap-3">
                         <div className="flex flex-col items-center">
@@ -1021,6 +1101,12 @@ export default function DashboardClient({
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
+                    {actionCenterItems.length === 0 && (
+                      <EmptyState
+                        title="No recommended actions"
+                        detail="When JOHAI finds a risk, gap, or opportunity, it will create an action card here."
+                      />
+                    )}
                     {actionCenterItems.map((item) => (
                       <div key={`${item.title}-${item.time}`} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
                         <div className="flex items-start justify-between gap-3">
@@ -1078,6 +1164,12 @@ export default function DashboardClient({
                     <h2 className="text-lg font-semibold">Today&apos;s Priorities</h2>
                   </div>
                   <div className="space-y-3">
+                    {todaysPriorities.length === 0 && (
+                      <EmptyState
+                        title="No priorities for today"
+                        detail="JOHAI is monitoring the business and will surface priorities as soon as signals appear."
+                      />
+                    )}
                     {todaysPriorities.map((priority) => (
                       <div key={`${priority.title}-${priority.priority}`} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
                         <p className="font-semibold text-slate-100">{priority.title}</p>
@@ -1136,7 +1228,7 @@ export default function DashboardClient({
               </Card>
             </section>
 
-            {morningBrief && (
+            {false && morningBrief && (
               <Card className="mb-6 overflow-hidden rounded-3xl">
                 <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -1432,7 +1524,7 @@ export default function DashboardClient({
               </Card>
             )}
 
-            {chiefOfStaffBriefing && (
+            {false && chiefOfStaffBriefing && (
               <Card className="mb-6 overflow-hidden rounded-3xl">
                 <div className="border-b border-white/10 bg-white/[0.045] p-5 lg:p-6">
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -1888,7 +1980,7 @@ export default function DashboardClient({
               </Card>
             )}
 
-            <section id="analytics" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section id="analytics" className="grid scroll-mt-36 gap-4 md:grid-cols-2 xl:grid-cols-4">
               {metricCards.map((metric) => {
                 const value =
                   metric.key === "total"
@@ -1920,7 +2012,7 @@ export default function DashboardClient({
               })}
             </section>
 
-            <Card id="automations" className="mt-6 rounded-3xl p-5">
+            <Card id="automations" className="mt-6 scroll-mt-36 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -1983,7 +2075,7 @@ export default function DashboardClient({
               </div>
             </Card>
 
-            <Card id="ai-brain" className="mt-6 rounded-3xl p-5">
+            <Card id="ai-brain" className="mt-6 scroll-mt-36 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -2127,7 +2219,7 @@ export default function DashboardClient({
               </div>
             </Card>
 
-            <Card id="ai-audit" className="mt-6 rounded-3xl p-5">
+            <Card id="ai-audit" className="mt-6 scroll-mt-36 rounded-3xl p-5">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
@@ -2329,7 +2421,7 @@ export default function DashboardClient({
 
             <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.6fr)]">
               <div className="space-y-6">
-                <Card id="meetings" className="rounded-3xl p-5">
+                <Card id="meetings" className="scroll-mt-36 rounded-3xl p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">Pipeline</h2>
@@ -2379,7 +2471,7 @@ export default function DashboardClient({
                   </div>
                 </Card>
 
-                <Card id="crm" className="rounded-3xl">
+                <Card id="crm" className="scroll-mt-36 rounded-3xl">
                   <div className="border-b border-white/10 p-5">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
@@ -2598,7 +2690,7 @@ export default function DashboardClient({
                   )}
                 </Card>
 
-                <Card id="settings-workspace" className="rounded-3xl p-5">
+                <Card id="settings-workspace" className="scroll-mt-36 rounded-3xl p-5">
                   <div className="mb-5 flex items-center gap-3">
                     <BriefcaseBusiness className="text-cyan-300" />
                     <div>
