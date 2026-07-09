@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
+import { useI18n } from "@/components/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const planDetails = {
   starter: {
@@ -81,6 +83,7 @@ const planDetails = {
 type PlanSlug = keyof typeof planDetails;
 
 export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
+  const { t } = useI18n();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -107,14 +110,14 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
       const data = (await response.json()) as { url?: string; error?: string };
 
       if (!response.ok || !data.url) {
-        setCheckoutMessage(data.error ?? "Checkout is not configured yet.");
+        setCheckoutMessage(data.error ?? t("pricing.notConfigured"));
         return;
       }
 
       window.location.href = data.url;
     } catch (error) {
       console.error(error);
-      setCheckoutMessage("Checkout is not configured yet.");
+      setCheckoutMessage(t("pricing.notConfigured"));
     } finally {
       setCheckoutLoading(false);
     }
@@ -125,14 +128,15 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
       <header className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-bold shadow-lg shadow-slate-900/5 backdrop-blur-xl">
           <ArrowLeft size={16} />
-          Back
+          {t("nav.back")}
         </Link>
         <div className="flex items-center gap-3">
+          <LanguageSwitcher className="hidden md:inline-flex" compact />
           <Link href="/product" className="hidden rounded-full px-4 py-2 text-sm font-bold text-slate-700 hover:bg-white/70 sm:inline-flex">
-            Product
+            {t("nav.product")}
           </Link>
           <CalendlyBookingButton
-            label="Book strategy call"
+            label={t("nav.bookCall")}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
           />
         </div>
@@ -164,7 +168,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
               {plan.cta}
             </button>
             <Link href="/#experience" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/70 px-6 py-4 text-sm font-bold text-slate-900 shadow-lg shadow-slate-900/5 backdrop-blur-xl transition hover:bg-white">
-              Compare plans
+              {t("buttons.comparePlans")}
             </Link>
           </div>
         </motion.div>
@@ -185,17 +189,17 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <DetailBlock title="What JOHAI will do" items={plan.features} />
-            <DetailBlock title="Monthly limits" items={plan.limits} />
-            <DetailBlock title="Setup process" items={plan.setup} />
-            <DetailBlock title="Example results" items={plan.results} />
+            <DetailBlock title={t("pricing.included")} items={plan.features} />
+            <DetailBlock title={t("pricing.limits")} items={plan.limits} />
+            <DetailBlock title={t("pricing.setup")} items={plan.setup} />
+            <DetailBlock title={t("pricing.results")} items={plan.results} />
           </div>
         </motion.div>
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-16 lg:px-8">
         <div className="rounded-[3rem] border border-white/70 bg-white/70 p-6 shadow-2xl shadow-slate-900/8 backdrop-blur-2xl">
-          <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-700">First 7 days</p>
+          <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-700">{t("pricing.firstSevenDays")}</p>
           <div className="mt-6 grid gap-3 md:grid-cols-7">
             {["Account", "Profile", "Booking", "Knowledge", "AI Audit", "Follow-up", "Launch"].map((day, index) => (
               <div key={day} className="rounded-2xl border border-slate-200 bg-white/75 p-4">
@@ -211,7 +215,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
         <div className="rounded-[3rem] border border-white/70 bg-slate-950 p-6 text-white shadow-2xl shadow-slate-900/20 md:p-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-200">Checkout preparation</p>
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-200">{t("pricing.checkoutTitle")}</p>
               <h2 className="mt-4 text-4xl font-semibold">Start {plan.name}</h2>
               <p className="mt-3 text-slate-300">${displayPrice}/{billingCycle === "yearly" ? "year" : "month"}. Account creation and payment setup are prepared visually.</p>
             </div>
@@ -220,7 +224,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
               onClick={() => setCheckoutOpen(true)}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-bold text-slate-950"
             >
-              Continue
+              {t("buttons.continue")}
             </button>
           </div>
         </div>
@@ -243,7 +247,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
               {/* Stripe checkout coming next. */}
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">Selected plan</p>
+                  <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">{t("pricing.selectedPlan")}</p>
                   <h3 className="mt-2 text-3xl font-semibold">{plan.name} - ${displayPrice}/{billingCycle === "yearly" ? "year" : "month"}</h3>
                 </div>
                 <button type="button" onClick={() => setCheckoutOpen(false)} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold">
@@ -265,9 +269,9 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
                 ))}
               </div>
               <div className="mt-6 grid gap-3">
-                <CheckoutStep icon={<UserRound size={18} />} title="Create your JOHAI account" detail="Account creation is prepared as the first step." />
-                <CheckoutStep icon={<CreditCard size={18} />} title="Prepare payment" detail="Payment setup will connect to the checkout provider next." />
-                <CheckoutStep icon={<CalendarCheck size={18} />} title="Start onboarding" detail="After checkout, the business workspace setup begins." />
+                <CheckoutStep icon={<UserRound size={18} />} title={t("pricing.accountCreation")} detail="Account creation is prepared as the first step." />
+                <CheckoutStep icon={<CreditCard size={18} />} title={t("pricing.payment")} detail="Payment setup will connect to the checkout provider next." />
+                <CheckoutStep icon={<CalendarCheck size={18} />} title={t("onboarding.aiTitle")} detail="After checkout, the business workspace setup begins." />
               </div>
               {checkoutMessage && (
                 <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
@@ -280,7 +284,7 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
                 disabled={checkoutLoading}
                 className="mt-6 block w-full rounded-full bg-slate-950 px-6 py-4 text-center text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {checkoutLoading ? "Preparing checkout..." : "Continue"}
+                {checkoutLoading ? t("states.loading") : t("buttons.continue")}
               </button>
             </motion.div>
           </motion.div>

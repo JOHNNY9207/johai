@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Brain, CalendarCheck, Check, MessageCircle, Sparkles } from "lucide-react";
+import { useI18n } from "@/components/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const steps = [
   ["AI identity", Brain],
@@ -9,19 +13,24 @@ const steps = [
 ] as const;
 
 export default function AiOnboardingPage() {
+  const { t } = useI18n();
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-cyan-50 to-orange-50 px-5 py-8 text-slate-950 lg:px-8">
+      <div className="mx-auto flex max-w-6xl justify-end">
+        <LanguageSwitcher compact />
+      </div>
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">AI onboarding</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{t("onboarding.aiTitle")}</p>
           <h1 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight md:text-8xl">
-            Teach JOHAI how the business works.
+            {t("onboarding.aiSubtitle")}
           </h1>
           <p className="mt-7 max-w-xl text-xl leading-9 text-slate-600">
             The AI is prepared with services, tone, rules, FAQs, booking flow, and follow-up behavior before the dashboard opens.
           </p>
           <Link href="/dashboard" className="mt-9 inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white shadow-2xl shadow-slate-900/20">
-            Open dashboard
+            {t("buttons.openDashboard")}
             <Sparkles size={17} />
           </Link>
         </div>

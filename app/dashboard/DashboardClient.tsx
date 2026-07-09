@@ -55,6 +55,8 @@ import type { SubscriptionModel } from "@/app/lib/billing";
 import type { CustomerSuccessDashboard } from "@/app/lib/customer-lifecycle";
 import type { MorningBrief, MorningBriefPriority } from "@/app/lib/morning-brief";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
+import { useI18n } from "@/components/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import type { LucideIcon } from "lucide-react";
 
 type DashboardClientProps = {
@@ -432,6 +434,7 @@ export default function DashboardClient({
   gettingStarted,
   loadError,
 }: DashboardClientProps) {
+  const { t } = useI18n();
   const [leadList, setLeadList] = useState(leads);
   const [selectedLeadId, setSelectedLeadId] = useState(leads[0]?.id ?? "");
   const [search, setSearch] = useState("");
@@ -753,8 +756,8 @@ export default function DashboardClient({
     (lead) => normalizeStatus(lead.status) === "New" || normalizeStatus(lead.status) === "Contacted"
   ).length;
   const todaysKpis = [
-    ["Business Health", `${businessHealthScore}%`, Gauge],
-    ["Revenue Forecast", `$${Math.round(revenueForecast / 1000)}k`, CircleDollarSign],
+    [t("dashboard.businessHealth"), `${businessHealthScore}%`, Gauge],
+    [t("dashboard.revenueForecast"), `$${Math.round(revenueForecast / 1000)}k`, CircleDollarSign],
     ["Missed Opportunities", missedOpportunities, ShieldAlert],
     ["Bookings", bookedLeads.length, CalendarDays],
     ["Conversations", leadList.filter((lead) => getConversation(lead.conversation).length > 0).length, MessageSquareText],
@@ -1006,7 +1009,7 @@ export default function DashboardClient({
                   JOHAI v2
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-                  AI company employee headquarters
+                  {t("dashboard.commandCenter")}
                 </h1>
               </div>
               <div className="flex flex-1 flex-col gap-3 lg:max-w-2xl lg:flex-row lg:items-center">
@@ -1023,6 +1026,7 @@ export default function DashboardClient({
                   />
                 </label>
                 <div className="flex items-center gap-2">
+                  <LanguageSwitcher className="hidden bg-white/[0.06] text-white md:inline-flex" compact />
                   <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-slate-300 transition hover:bg-white/10" aria-label="Notifications">
                     <Bell size={18} />
                   </button>
@@ -1249,7 +1253,7 @@ export default function DashboardClient({
                     <div className="flex items-center gap-3">
                       <Gauge className="text-cyan-300" />
                       <div>
-                        <h2 className="text-xl font-semibold">Business Health</h2>
+                        <h2 className="text-xl font-semibold">{t("dashboard.businessHealth")}</h2>
                         <p className="text-sm text-slate-500">Live operating score</p>
                       </div>
                     </div>
@@ -1280,14 +1284,14 @@ export default function DashboardClient({
                   <div className="mb-5 flex items-center gap-3">
                     <Bell className="text-amber-300" />
                     <div>
-                      <h2 className="text-xl font-semibold">Notification Center</h2>
+                      <h2 className="text-xl font-semibold">{t("dashboard.notificationCenter")}</h2>
                       <p className="text-sm text-slate-500">Signals requiring attention</p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     {notificationItems.length === 0 && (
                       <EmptyState
-                        title="No active notifications"
+                        title={t("dashboard.noNotifications")}
                         detail="JOHAI will surface urgent meetings, risks, and follow-ups here."
                       />
                     )}
@@ -1305,11 +1309,11 @@ export default function DashboardClient({
                 <Card className="rounded-3xl p-5 lg:p-6">
                   <div className="mb-5 flex items-center gap-3">
                     <MessageSquareText className="text-cyan-300" />
-                    <h2 className="text-xl font-semibold">Conversation Queue</h2>
+                    <h2 className="text-xl font-semibold">{t("dashboard.conversationQueue")}</h2>
                   </div>
                   <div className="space-y-3">
                     {conversationQueue.length === 0 && (
-                      <EmptyState title="No conversations queued" detail="New visitor conversations will appear here." />
+                      <EmptyState title={t("dashboard.noConversations")} detail="New visitor conversations will appear here." />
                     )}
                     {conversationQueue.map((lead) => (
                       <button
@@ -1328,7 +1332,7 @@ export default function DashboardClient({
                 <Card className="rounded-3xl p-5 lg:p-6">
                   <div className="mb-5 flex items-center gap-3">
                     <Target className="text-emerald-300" />
-                    <h2 className="text-xl font-semibold">Lead Pipeline</h2>
+                    <h2 className="text-xl font-semibold">{t("dashboard.leadPipeline")}</h2>
                   </div>
                   <div className="space-y-4">
                     {weeklyTrends.map((trend) => (
@@ -1348,7 +1352,7 @@ export default function DashboardClient({
                 <Card className="rounded-3xl p-5 lg:p-6">
                   <div className="mb-5 flex items-center gap-3">
                     <Clock3 className="text-amber-300" />
-                    <h2 className="text-xl font-semibold">Follow-up Queue</h2>
+                    <h2 className="text-xl font-semibold">{t("dashboard.followUpQueue")}</h2>
                   </div>
                   <div className="space-y-3">
                     {followUpQueue.length === 0 && (
@@ -1375,11 +1379,11 @@ export default function DashboardClient({
                 <Card className="rounded-3xl p-5 lg:p-6">
                   <div className="mb-5 flex items-center gap-3">
                     <CalendarDays className="text-cyan-300" />
-                    <h2 className="text-xl font-semibold">Calendar</h2>
+                    <h2 className="text-xl font-semibold">{t("dashboard.calendar")}</h2>
                   </div>
                   <div className="space-y-3">
                     {upcomingMeetings.slice(0, 5).length === 0 && (
-                      <EmptyState title="No meetings this week" detail="Qualified bookings will show up here." />
+                      <EmptyState title={t("dashboard.noMeetings")} detail="Qualified bookings will show up here." />
                     )}
                     {upcomingMeetings.slice(0, 5).map((lead) => (
                       <button
@@ -1403,7 +1407,7 @@ export default function DashboardClient({
                 <Card className="rounded-3xl p-5 lg:p-6">
                   <div className="mb-5 flex items-center gap-3">
                     <StickyNote className="text-violet-300" />
-                    <h2 className="text-xl font-semibold">Recent CRM Updates</h2>
+                    <h2 className="text-xl font-semibold">{t("dashboard.recentCrmUpdates")}</h2>
                   </div>
                   <div className="space-y-3">
                     {recentCrmUpdates.map((lead) => (
@@ -3836,7 +3840,7 @@ export default function DashboardClient({
                 <Search size={18} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-white">Command Palette</p>
+                <p className="font-semibold text-white">{t("dashboard.commandPalette")}</p>
                 <p className="text-xs text-slate-500">Jump anywhere in JOHAI with Ctrl+K.</p>
               </div>
               <button

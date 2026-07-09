@@ -19,10 +19,18 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
 import FloatingChat from "@/components/FloatingChat";
+import { useI18n } from "@/components/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 type Room = "AI Employee" | "Industries" | "Customers" | "Pricing";
 
 const rooms: Room[] = ["AI Employee", "Industries", "Customers", "Pricing"];
+const roomTranslationKeys: Record<Room, string> = {
+  "AI Employee": "nav.demo",
+  Industries: "nav.solutions",
+  Customers: "landing.testimonialsTitle",
+  Pricing: "nav.pricing",
+};
 
 const aiFlow = [
   { label: "Visitor asks", detail: "Can AI help my business book more customers?", icon: MessageCircle },
@@ -222,6 +230,7 @@ function PhotoStage({
 }
 
 function AiEmployeeRoom() {
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -242,20 +251,20 @@ function AiEmployeeRoom() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.7 }}
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">AI Employee</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{t("landing.heroEyebrow")}</p>
           <h1 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
-            Watch JOHAI run the work.
+            {t("landing.heroTitle")}
           </h1>
           <p className="mt-7 max-w-xl text-xl leading-9 text-slate-600">
-            Leads, answers, bookings, emails, follow-ups, and CRM updates move while your team stays focused.
+            {t("landing.heroSubtitle")}
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="/executive-dashboard" className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white shadow-2xl shadow-slate-900/20">
               <ArrowRight size={17} />
-              Open Executive Dashboard
+              {t("buttons.openDashboard")}
             </Link>
             <CalendlyBookingButton
-              label="Book Strategy Call"
+              label={t("buttons.bookCall")}
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/70 bg-white/70 px-6 py-4 text-sm font-bold text-slate-900 shadow-lg shadow-slate-900/5 backdrop-blur-xl transition hover:bg-white"
             />
           </div>
@@ -365,6 +374,7 @@ function ExecutiveDashboardMock({
 }
 
 function IndustriesRoom() {
+  const { t } = useI18n();
   const [active, setActive] = useState(0);
   const industry = industries[active];
 
@@ -372,7 +382,7 @@ function IndustriesRoom() {
     <RoomShell tone={industry.color}>
       <div className="grid min-h-[calc(100vh-9rem)] items-center gap-8 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Industries</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{t("landing.industriesTitle")}</p>
           <h2 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
             One AI layer. Every business rhythm.
           </h2>
@@ -461,6 +471,7 @@ function CustomersRoom() {
 }
 
 function PricingRoom() {
+  const { t } = useI18n();
   const [yearly, setYearly] = useState(false);
   const [expanded, setExpanded] = useState("Professional");
   const multiplier = yearly ? 10 : 1;
@@ -471,9 +482,9 @@ function PricingRoom() {
       <div className="min-h-[calc(100vh-9rem)]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Pricing</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{t("nav.pricing")}</p>
             <h2 className="mt-6 max-w-4xl text-6xl font-semibold leading-[0.9] tracking-tight text-slate-950 md:text-8xl">
-              Choose the AI layer your business needs.
+              {t("landing.pricingTitle")}
             </h2>
           </div>
           <div className="flex rounded-full border border-white/70 bg-white/70 p-1 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
@@ -549,7 +560,7 @@ function PricingRoom() {
               <p className="mt-2 text-3xl font-semibold">Projected monthly value: {roi}</p>
             </div>
             <CalendlyBookingButton
-              label="Book Strategy Call"
+              label={t("buttons.bookCall")}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
             />
           </div>
@@ -576,6 +587,7 @@ function RoomShell({ children, tone }: { children: ReactNode; tone: string }) {
 }
 
 export default function Home() {
+  const { t } = useI18n();
   const [room, setRoom] = useState<Room>("AI Employee");
 
   return (
@@ -597,7 +609,7 @@ export default function Home() {
               href="/product"
               className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white"
             >
-              Product
+              {t("nav.product")}
             </Link>
             {rooms.map((item) => (
               <button
@@ -608,18 +620,19 @@ export default function Home() {
                   room === item ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-white"
                 }`}
               >
-                {item === "Industries" ? "Solutions" : item === "AI Employee" ? "Demo" : item}
+                {t(roomTranslationKeys[item])}
               </button>
             ))}
             <Link
               href="/dashboard"
               className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white"
             >
-              Dashboard
+              {t("nav.dashboard")}
             </Link>
           </div>
+          <LanguageSwitcher className="hidden lg:inline-flex" compact />
           <CalendlyBookingButton
-            label="Book Call"
+            label={t("nav.bookCall")}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
           />
         </nav>
@@ -642,7 +655,7 @@ export default function Home() {
               room === item ? "bg-slate-950 text-white" : "text-slate-700"
             }`}
           >
-            {item.split(" ")[0]}
+            {t(roomTranslationKeys[item]).split(" ")[0]}
           </button>
         ))}
       </div>

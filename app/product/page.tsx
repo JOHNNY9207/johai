@@ -15,6 +15,8 @@ import {
   Zap,
 } from "lucide-react";
 import CalendlyBookingButton from "@/components/CalendlyBookingButton";
+import { useI18n } from "@/components/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const modules = [
   {
@@ -59,15 +61,18 @@ const dailyFlow = [
 ];
 
 export default function ProductPage() {
+  const { t } = useI18n();
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-orange-50 text-slate-950">
       <header className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-bold shadow-lg shadow-slate-900/5 backdrop-blur-xl">
           <ArrowLeft size={16} />
-          Back
+          {t("nav.back")}
         </Link>
+        <LanguageSwitcher className="hidden sm:inline-flex" compact />
         <CalendlyBookingButton
-          label="Book strategy call"
+          label={t("nav.bookCall")}
           className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
         />
       </header>
@@ -78,12 +83,12 @@ export default function ProductPage() {
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.65 }}
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">Product</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-cyan-700">{t("product.eyebrow")}</p>
           <h1 className="mt-6 text-6xl font-semibold leading-[0.9] tracking-tight md:text-8xl">
-            The daily operating system for your AI employee.
+            {t("product.title")}
           </h1>
           <p className="mt-7 max-w-xl text-xl leading-9 text-slate-600">
-            JOHAI connects conversations, CRM, knowledge, booking, audits, and follow-ups into one calm command layer.
+            {t("product.subtitle")}
           </p>
         </motion.div>
 
@@ -103,7 +108,7 @@ export default function ProductPage() {
             className="h-[58vh] min-h-[420px] w-full rounded-[3rem] border border-white/70 object-cover shadow-2xl shadow-slate-900/15"
           />
           <div className="absolute bottom-8 left-8 right-8 rounded-[2rem] border border-white/70 bg-white/84 p-6 shadow-2xl shadow-slate-900/15 backdrop-blur-2xl">
-            <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">Command Center</p>
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-700">{t("product.commandCenter")}</p>
             <p className="mt-3 text-3xl font-semibold">12 conversations, 4 qualified leads, 2 meetings booked.</p>
           </div>
         </motion.div>
@@ -144,13 +149,13 @@ export default function ProductPage() {
         <div className="rounded-[3rem] border border-white/70 bg-white/70 p-6 shadow-2xl shadow-slate-900/8 backdrop-blur-2xl md:p-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-700">Daily use</p>
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-cyan-700">{t("product.dailyUse")}</p>
               <h2 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
-                How the business owner uses JOHAI every morning.
+                {t("product.dailyTitle")}
               </h2>
             </div>
             <Link href="/pricing/professional" className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-4 text-sm font-bold text-white">
-              View Professional
+              {t("product.viewProfessional")}
               <Zap size={17} />
             </Link>
           </div>
