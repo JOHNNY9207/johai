@@ -4,12 +4,14 @@ import Link from "next/link";
 import { ArrowLeft, Building2, Check, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/I18nProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function CompanyCreationPage() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-orange-50 px-5 py-8 text-slate-950 lg:px-8">
+    <AuthGuard>
+      <main className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-orange-50 px-5 py-8 text-slate-950 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-bold shadow-lg shadow-slate-900/5 backdrop-blur-xl">
@@ -55,6 +57,7 @@ export default function CompanyCreationPage() {
           </div>
         </section>
       </div>
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

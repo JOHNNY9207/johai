@@ -804,6 +804,7 @@ export default function DashboardClient({
     { label: "Open CRM", href: "#crm", icon: UsersRound },
     { label: "Open Knowledge", href: "/dashboard/knowledge", icon: Brain },
     { label: "Open Settings", href: "/dashboard/settings", icon: Settings },
+    { label: "Invite Team", href: "/dashboard/team", icon: UsersRound },
     { label: "Continue Onboarding", href: "/dashboard/onboarding", icon: Sparkles },
     { label: "Review Follow-ups", href: "#automations", icon: Clock3 },
     { label: "View Analytics", href: "#analytics", icon: Gauge },

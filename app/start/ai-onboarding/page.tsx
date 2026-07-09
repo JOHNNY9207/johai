@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Brain, CalendarCheck, Check, MessageCircle, Sparkles } from "lucide-react";
 import { useI18n } from "@/components/I18nProvider";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AuthGuard from "@/components/AuthGuard";
 
 const steps = [
   ["AI identity", Brain],
@@ -16,7 +17,8 @@ export default function AiOnboardingPage() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-cyan-50 to-orange-50 px-5 py-8 text-slate-950 lg:px-8">
+    <AuthGuard>
+      <main className="min-h-screen bg-gradient-to-br from-white via-cyan-50 to-orange-50 px-5 py-8 text-slate-950 lg:px-8">
       <div className="mx-auto flex max-w-6xl justify-end">
         <LanguageSwitcher compact />
       </div>
@@ -52,6 +54,7 @@ export default function AiOnboardingPage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </AuthGuard>
   );
 }

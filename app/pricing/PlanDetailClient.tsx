@@ -135,6 +135,9 @@ export default function PlanDetailClient({ slug }: { slug: PlanSlug }) {
           <Link href="/product" className="hidden rounded-full px-4 py-2 text-sm font-bold text-slate-700 hover:bg-white/70 sm:inline-flex">
             {t("nav.product")}
           </Link>
+          <Link href="/auth/login" className="hidden rounded-full px-4 py-2 text-sm font-bold text-slate-700 hover:bg-white/70 md:inline-flex">
+            Sign in
+          </Link>
           <CalendlyBookingButton
             label={t("nav.bookCall")}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
