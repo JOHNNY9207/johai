@@ -1,0 +1,11 @@
+import { CheckCircle2, Clock3 } from "lucide-react";
+
+export default function ExecutiveBrief({ greeting, businessName, status, narrative, change, consequence, decision, next, updatedAt }: { greeting: string; businessName: string; status: string; narrative: string; change: string; consequence: string; decision: string; next: string; updatedAt: string }) {
+  return <section aria-labelledby="executive-brief" className="rounded-[1.75rem] bg-[#0b1421] p-6 shadow-2xl shadow-black/20 sm:p-8 lg:p-10">
+    <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm text-slate-400">{greeting},</p><h1 id="executive-brief" className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-5xl">Here is what matters at {businessName}.</h1></div><span className="w-fit rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold text-cyan-100">{status}</span></div>
+    <p className="mt-7 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">{narrative}</p>
+    <div className="mt-8 grid gap-px overflow-hidden rounded-2xl bg-white/10 lg:grid-cols-3"><BriefBlock label="Most important change" text={change} trust="Recorded" /><BriefBlock label="Why it matters" text={consequence} trust="Derived" /><BriefBlock label="Your decision" text={decision} trust="Recommended" /></div>
+    <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 text-sm sm:flex-row sm:items-center sm:justify-between"><p className="flex items-start gap-2 text-slate-300"><CheckCircle2 className="mt-0.5 shrink-0 text-emerald-300" size={16} aria-hidden="true" /><span><span className="text-slate-500">JOHAI next: </span>{next}</span></p><p className="flex items-center gap-2 text-xs text-slate-500"><Clock3 size={14} aria-hidden="true" />Data updated {updatedAt}</p></div>
+  </section>;
+}
+function BriefBlock({ label, text, trust }: { label: string; text: string; trust: string }) { return <div className="bg-[#0e1927] p-5"><div className="flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-slate-200">{label}</h2><span className="text-[11px] text-slate-500">{trust}</span></div><p className="mt-2 text-sm leading-6 text-slate-400">{text}</p></div>; }
