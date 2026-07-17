@@ -38,27 +38,32 @@ export default async function KnowledgePage() {
   }
 
   const supabase = createSupabaseServerClient();
-  const { data } = await supabase
+  const { data, error: itemsError } = await supabase
     .from("knowledge_items")
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: false });
-  const { data: files } = await supabase
+  const { data: files, error: filesError } = await supabase
     .from("knowledge_files")
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: false });
-  const { data: chunks } = await supabase
+  const { data: chunks, error: chunksError } = await supabase
     .from("knowledge_chunks")
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("chunk_index", { ascending: true });
-  const { data: logs } = await supabase
+  const { data: logs, error: logsError } = await supabase
     .from("knowledge_processing_logs")
     .select("*")
     .eq("business_id", DEFAULT_BUSINESS_ID)
     .order("created_at", { ascending: false })
     .limit(40);
+
+  const loadError = itemsError ?? filesError ?? chunksError ?? logsError;
+  if (loadError) {
+    throw new Error(`Knowledge Center data could not be loaded: ${loadError.message}`);
+  }
 
   return (
     <KnowledgeClient

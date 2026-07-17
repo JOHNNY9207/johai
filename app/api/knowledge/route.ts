@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { isDashboardAuthenticated } from "@/app/lib/dashboard-auth";
 import {
   aiLearningStatuses,
@@ -9,6 +10,9 @@ import {
   type KnowledgeItem,
   type KnowledgeSection,
 } from "@/app/lib/supabase";
+import { processKnowledgeFile } from "@/app/lib/knowledge-engine";
+
+const bucketName = "knowledge-files";
 
 type KnowledgePayload = {
   section?: KnowledgeSection;
@@ -119,7 +123,61 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    return NextResponse.json({ item: data as KnowledgeItem });
+    const savedItem = data as KnowledgeItem;
+    const content = cleanText(body.content);
+
+    if (content && cleanText(body.source_type) !== "website") {
+      const fileId = randomUUID();
+      const filename = `${title.replace(/[^a-zA-Z0-9._-]+/g, "-") || "manual-knowledge"}.txt`;
+      const storagePath = `${DEFAULT_BUSINESS_ID}/${fileId}/${filename}`;
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(storagePath, new TextEncoder().encode(content), {
+          contentType: "text/plain",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        await supabase.from("knowledge_items").delete().eq("id", savedItem.id).eq("business_id", DEFAULT_BUSINESS_ID);
+        throw uploadError;
+      }
+
+      const { data: file, error: fileError } = await supabase
+        .from("knowledge_files")
+        .insert({
+          id: fileId,
+          business_id: DEFAULT_BUSINESS_ID,
+          knowledge_item_id: savedItem.id,
+          filename,
+          original_filename: filename,
+          file_type: "txt",
+          mime_type: "text/plain",
+          file_size: new TextEncoder().encode(content).byteLength,
+          storage_path: storagePath,
+          upload_status: "Uploaded",
+          processing_status: "Uploaded",
+          chunk_count: 0,
+          source_metadata: { source_type: cleanText(body.source_type) || "manual" },
+        })
+        .select("*")
+        .single();
+
+      if (fileError || !file) {
+        await supabase.storage.from(bucketName).remove([storagePath]);
+        await supabase.from("knowledge_items").delete().eq("id", savedItem.id).eq("business_id", DEFAULT_BUSINESS_ID);
+        throw fileError ?? new Error("Manual knowledge file could not be created.");
+      }
+
+      const processing = await processKnowledgeFile(supabase, file, {
+        requestId: randomUUID(),
+      });
+      if (processing.status === "Failed") {
+        throw new Error(processing.error || "Manual knowledge processing failed.");
+      }
+      return NextResponse.json({ item: savedItem, file });
+    }
+
+    return NextResponse.json({ item: savedItem, websiteIngestion: "planned" });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

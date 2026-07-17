@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 import { DEFAULT_BUSINESS_ID } from "@/app/lib/supabase";
 
 export type MemorySearchResult = {
@@ -10,6 +11,8 @@ export type MemorySearchResult = {
   source: string;
   chunk_preview: string;
   score: number;
+  section_reference?: string;
+  page_reference?: string;
   created_at?: string;
 };
 
@@ -48,6 +51,24 @@ export interface KnowledgeRetriever {
 export class PlaceholderEmbeddingProvider implements EmbeddingProvider {
   async embed(): Promise<number[]> {
     throw new Error("EmbeddingProvider is not configured yet.");
+  }
+}
+
+export class OpenAIEmbeddingProvider implements EmbeddingProvider {
+  private readonly client: OpenAI;
+
+  constructor(apiKey: string, private readonly model = "text-embedding-3-small") {
+    this.client = new OpenAI({ apiKey });
+  }
+
+  async embed(text: string) {
+    const response = await this.client.embeddings.create({
+      model: this.model,
+      input: text.slice(0, 32_000),
+      encoding_format: "float",
+    });
+
+    return response.data[0]?.embedding ?? [];
   }
 }
 
@@ -105,8 +126,14 @@ export function createSemanticMemoryServices(supabase: SupabaseClient) {
   const memoryRetriever = new DefaultMemoryRetriever(semanticSearch);
   const knowledgeRetriever = new DefaultKnowledgeRetriever(memoryRetriever);
 
+  const embeddingApiKey = process.env.OPENAI_API_KEY?.trim();
+
   return {
-    embeddingProvider: new PlaceholderEmbeddingProvider(),
+    embeddingProvider: embeddingApiKey
+      ? new OpenAIEmbeddingProvider(embeddingApiKey)
+      : new PlaceholderEmbeddingProvider(),
+    embeddingProviderStatus: embeddingApiKey ? "configured" as const : "unavailable" as const,
+    searchMode: "keyword" as const,
     vectorStore: new PlaceholderVectorStore(),
     semanticSearch,
     memoryRetriever,

@@ -7,40 +7,12 @@ import {
   type KnowledgeFile,
   type KnowledgeItem,
 } from "@/app/lib/supabase";
-
-const bucketName = "knowledge-files";
-const allowedExtensions = new Set([
-  "pdf",
-  "docx",
-  "xlsx",
-  "pptx",
-  "csv",
-  "txt",
-  "md",
-]);
-const allowedMimeTypes = new Set([
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/csv",
-  "text/plain",
-  "text/markdown",
-  "application/octet-stream",
-]);
-
-function getExtension(filename: string) {
-  return filename.split(".").pop()?.toLowerCase() ?? "";
-}
-
-function safeFilename(filename: string) {
-  const cleaned = filename
-    .trim()
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/-+/g, "-");
-
-  return cleaned || `knowledge-${Date.now()}`;
-}
+import {
+  KnowledgeUploadError,
+  assertKnowledgeUploadRateLimit,
+  knowledgeBucketName,
+  validateKnowledgeUpload,
+} from "@/app/lib/knowledge-upload";
 
 export async function POST(request: Request) {
   if (!(await isDashboardAuthenticated())) {
@@ -48,6 +20,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    assertKnowledgeUploadRateLimit(request);
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -55,25 +29,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File is required." }, { status: 400 });
     }
 
-    const extension = getExtension(file.name);
-    const mimeType = file.type || "application/octet-stream";
-
-    if (!allowedExtensions.has(extension) || !allowedMimeTypes.has(mimeType)) {
-      return NextResponse.json(
-        { error: "Unsupported file type." },
-        { status: 400 }
-      );
-    }
+    const {
+      bytes: fileBuffer,
+      extension,
+      mimeType,
+      safeName,
+    } = await validateKnowledgeUpload(file);
 
     const supabase = createSupabaseServerClient();
     const fileId = randomUUID();
-    const filename = `${fileId}-${safeFilename(file.name)}`;
+    const filename = `${fileId}-${safeName}`;
     const storagePath = `${DEFAULT_BUSINESS_ID}/${fileId}/${filename}`;
 
     // Storage is the source of truth for raw files; parsing and chunking plug in after this upload succeeds.
     const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(storagePath, await file.arrayBuffer(), {
+      .from(knowledgeBucketName)
+      .upload(storagePath, fileBuffer, {
         contentType: mimeType,
         upsert: false,
       });
@@ -96,8 +67,8 @@ export async function POST(request: Request) {
         metadata: {
           storage_path: storagePath,
           original_filename: file.name,
-          ingestion_phase: "phase_2_architecture",
-          parsers_ready_for: ["pdf", "docx", "xlsx", "pptx", "csv", "txt", "md"],
+          ingestion_pipeline: "knowledge_center_v2",
+          parser: extension,
         },
         ai_learning_status: "Learning queued",
         embedding_status: "not_started",
@@ -107,7 +78,7 @@ export async function POST(request: Request) {
       .single();
 
     if (itemError) {
-      await supabase.storage.from(bucketName).remove([storagePath]);
+      await supabase.storage.from(knowledgeBucketName).remove([storagePath]);
       throw itemError;
     }
 
@@ -124,14 +95,14 @@ export async function POST(request: Request) {
         file_size: file.size,
         storage_path: storagePath,
         upload_status: "Uploaded",
-        processing_status: "Queued",
+        processing_status: "Uploaded",
         chunk_count: 0,
       })
       .select("*")
       .single();
 
     if (fileError) {
-      await supabase.storage.from(bucketName).remove([storagePath]);
+      await supabase.storage.from(knowledgeBucketName).remove([storagePath]);
       await supabase
         .from("knowledge_items")
         .delete()
@@ -147,6 +118,12 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(error);
+    if (error instanceof KnowledgeUploadError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
     return NextResponse.json(
       { error: "Knowledge file could not be uploaded." },
       { status: 500 }

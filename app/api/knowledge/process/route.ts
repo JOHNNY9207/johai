@@ -1,6 +1,11 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { isDashboardAuthenticated } from "@/app/lib/dashboard-auth";
 import { processKnowledgeFile } from "@/app/lib/knowledge-engine";
+import {
+  SynchronousKnowledgeProcessingQueue,
+  type KnowledgeProcessingResult,
+} from "@/app/lib/knowledge-processing-queue";
 import {
   createSupabaseServerClient,
   DEFAULT_BUSINESS_ID,
@@ -50,7 +55,15 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
       fileId?: string;
+      requestId?: string;
     };
+    const requestId = body.requestId?.trim();
+    if (requestId && requestId.length > 128) {
+      return NextResponse.json(
+        { error: "The processing request identifier is too long." },
+        { status: 400 }
+      );
+    }
     const supabase = createSupabaseServerClient();
     let query = supabase
       .from("knowledge_files")
@@ -60,7 +73,9 @@ export async function POST(request: Request) {
     if (body.fileId) {
       query = query.eq("id", body.fileId);
     } else {
-      query = query.in("processing_status", ["Queued", "Failed"]);
+      query = query
+        .in("processing_status", ["Uploaded", "Queued", "Failed"])
+        .eq("is_active_version", true);
     }
 
     const { data, error } = await query.order("created_at", {
@@ -72,22 +87,60 @@ export async function POST(request: Request) {
     }
 
     const files = (data ?? []) as KnowledgeFile[];
-    const results = [];
+    const results: KnowledgeProcessingResult[] = [];
+    const fileById = new Map(files.map((file) => [file.id, file]));
+    const queue = new SynchronousKnowledgeProcessingQueue(async (job) => {
+      const queuedFile = fileById.get(job.fileId);
+      if (!queuedFile) {
+        return {
+          fileId: job.fileId,
+          status: "Failed" as const,
+          skipped: true,
+          recoverable: false,
+          error: "The queued knowledge file was not found.",
+        };
+      }
+
+      return processKnowledgeFile(supabase, queuedFile, {
+        updateKnowledgeItem: queuedFile.is_active_version !== false,
+        requestId: job.requestId,
+        allowReadyReprocess:
+          Boolean(body.fileId) && queuedFile.processing_status === "Ready",
+      });
+    });
 
     for (const file of files) {
       try {
-        const result = await processKnowledgeFile(supabase, file);
-        results.push({ fileId: file.id, status: "Ready", ...result });
+        const result = await queue.enqueue({
+          fileId: file.id,
+          businessId: DEFAULT_BUSINESS_ID,
+          requestId: requestId || randomUUID(),
+          requestedAt: new Date().toISOString(),
+          reason:
+            file.processing_status === "Failed"
+              ? "retry"
+              : file.processing_status === "Ready"
+                ? "reprocess"
+                : "upload",
+        });
+        results.push(result);
       } catch (error) {
         results.push({
           fileId: file.id,
           status: "Failed",
+          recoverable: true,
           error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
-    return NextResponse.json({ processed: results.length, results });
+    return NextResponse.json({
+      requested: results.length,
+      processed: results.filter((result) => !result.skipped).length,
+      skipped: results.filter((result) => result.skipped).length,
+      queueMode: queue.mode,
+      results,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
