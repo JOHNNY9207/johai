@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { I18nProvider } from "@/components/I18nProvider";
-import { AuthProvider } from "@/components/AuthProvider";
+import { AppProviders } from "@/components/AppProviders";
 
 export const metadata: Metadata = {
   title: "JOHAI AI Automation",
@@ -14,11 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col">
-        <I18nProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </I18nProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

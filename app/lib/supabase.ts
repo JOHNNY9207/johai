@@ -186,6 +186,7 @@ export const aiLearningStatuses = [
   "Ready to learn",
   "Learning queued",
   "Learned",
+  "Needs review",
 ] as const;
 
 export type AiLearningStatus = (typeof aiLearningStatuses)[number];
@@ -220,10 +221,13 @@ export const knowledgeUploadStatuses = [
 export type KnowledgeUploadStatus = (typeof knowledgeUploadStatuses)[number];
 
 export const knowledgeProcessingStatuses = [
+  "Uploaded",
   "Queued",
   "Processing",
   "Ready",
   "Failed",
+  "Needs review",
+  "Archived",
 ] as const;
 
 export type KnowledgeProcessingStatus =
@@ -242,6 +246,16 @@ export type KnowledgeFile = {
   upload_status: KnowledgeUploadStatus;
   processing_status: KnowledgeProcessingStatus;
   chunk_count: number;
+  processed_at?: string;
+  last_processing_attempt_at?: string;
+  processing_duration_ms?: number;
+  processing_error?: string;
+  processing_attempts?: number;
+  archived_at?: string;
+  source_metadata?: Record<string, unknown>;
+  version_number?: number;
+  is_active_version?: boolean;
+  previous_version_id?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -253,6 +267,10 @@ export type KnowledgeChunk = {
   chunk_index: number;
   content: string;
   token_count: number;
+  character_count?: number;
+  source_reference?: string;
+  section_reference?: string;
+  page_reference?: string;
   processing_status?: string;
   ready_for_embedding?: boolean;
   embedding_status: string;

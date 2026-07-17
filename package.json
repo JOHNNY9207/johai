@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:knowledge": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/knowledge-processing-reliability.test.ts",
+    "test:portal": "node --test --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/customer-portal-pilot.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
+    "mammoth": "^1.12.0",
     "next": "16.2.10",
     "openai": "^6.45.0",
+    "pdfjs-dist": "^6.1.200",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

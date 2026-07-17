@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  createSupabaseAuthClient,
+  getSupabaseAuthClient,
   isSupabaseAuthConfigured,
 } from "@/app/lib/supabase-auth-client";
 
@@ -28,11 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = isSupabaseAuthConfigured();
   const [loading, setLoading] = useState(() => configured);
   const [session, setSession] = useState<Session | null>(null);
-  const supabase = useMemo(() => {
-    if (!configured) return null;
-
-    return createSupabaseAuthClient();
-  }, [configured]);
+  const supabase = configured ? getSupabaseAuthClient() : null;
 
   useEffect(() => {
     if (!supabase) {
