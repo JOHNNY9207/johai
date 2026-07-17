@@ -19,13 +19,14 @@ API routes live under `app/api`. They use server-side Supabase access and should
 - `POST /api/knowledge/upload`
 - `GET /api/knowledge/files`
 - `PATCH/DELETE /api/knowledge/files/[id]`
+- `POST /api/knowledge/files/[id]/replace`
 - `POST /api/knowledge/process`
 - `GET /api/knowledge/search`
 - `POST /api/follow-ups/process`
 - `GET/PATCH /api/onboarding`
 
 ## Current Status
-Routes support CRM, chatbot, Calendly, email, follow-up, knowledge, onboarding, and dashboard workflows.
+Routes support CRM, chatbot, Calendly, email, follow-up, knowledge, onboarding, and dashboard workflows. Knowledge routes include validated upload, extraction, search, copy-on-write replacement, guarded version approval, and version-aware deletion.
 
 ## Future Roadmap
 Add API tests, rate limiting, stronger tenant-aware auth checks, and OpenAPI documentation.

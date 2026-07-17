@@ -10,10 +10,10 @@ The schema is migration-driven. Migrations cover lead management, Calendly, emai
 `businesses`, `business_settings`, `leads`, Calendly settings, `knowledge_items`, `knowledge_files`, `knowledge_chunks`, processing logs, orchestration logs, `business_brains`, and `audits`.
 
 ## Current Status
-Existing data is preserved through additive migrations. Current leads are assigned to the default JOHAI business. Knowledge and AI records include `business_id` for tenant isolation.
+Existing data is preserved through additive migrations. Current leads are assigned to the default JOHAI business. Knowledge and AI records include `business_id` for tenant isolation. Knowledge files include processing evidence and `version_number`, `is_active_version`, and `previous_version_id`; the active replacement workflow uses those verified fields without another migration.
 
 ## Future Roadmap
-Complete Supabase Auth ownership with `auth.uid()`, strengthen RLS, add pgvector embeddings, add business memberships/roles, and add billing tables.
+Complete Supabase Auth ownership with `auth.uid()`, strengthen RLS, add transaction-backed version allocation/activation constraints, add pgvector embeddings, add business memberships/roles, and add billing tables.
 
 ## Dependencies
 Supabase SQL migrations, Supabase service client, and future RLS policies.

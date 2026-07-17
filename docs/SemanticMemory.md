@@ -10,13 +10,13 @@ The design defines interfaces for embedding providers, vector stores, semantic s
 `EmbeddingProvider`, `VectorStore`, `SemanticSearch`, `MemoryRetriever`, `KnowledgeRetriever`, chunk search, and AI Memory dashboard status.
 
 ## Current Status
-Semantic Memory is architecture-ready and supports full-text search over chunks.
+Semantic Memory supports tenant-scoped full-text search over Ready, active, non-archived chunks. An OpenAI embedding-provider adapter exists, but no production vector store or hybrid ranker is connected.
 
 ## Future Roadmap
-OpenAI embeddings, pgvector storage, hybrid search, reranking, source citation, and retrieval-augmented chatbot answers.
+Persist embeddings, add pgvector storage, hybrid search, reranking, multilingual evaluation, and production retrieval monitoring.
 
 ## Dependencies
 `knowledge_chunks`, `knowledge_files`, `knowledge_items`, future embedding provider, and future vector store.
 
 ## Known Limitations
-No external embedding API is called yet. Search quality depends on extracted chunk quality. Vector similarity is not implemented yet.
+Active retrieval remains keyword full-text search. Search quality depends on extracted chunk quality, and vector similarity is not implemented yet.
